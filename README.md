@@ -1,7 +1,7 @@
 # PINGuin
 
 Automated reconnaissance tool for network scanning and enumeration.
-
+[![License](https://img.shields.io/badge/license-Unlicense-blue.svg)](https://unlicense.org/)
 ## What it does
 
 - Scans networks for open ports and services
