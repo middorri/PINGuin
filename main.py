@@ -1,0 +1,161 @@
+#!/usr/bin/python3
+"""
+PINGuin - Automated Reconnaissance Tool
+Main entry point that coordinates all reconnaissance modules
+Features a pinned banner that stays visible during menu navigation
+"""
+
+import os
+import sys
+import subprocess
+import config_loader
+
+def banner():
+    """Display the PINGuin banner"""
+    os.system('clear')
+    print("")
+    print("")
+    print("    ██▓███   ██▓ ███▄    █   ▄████  █    ██  ██▓ ███▄    █ ")
+    print("   ▓██░  ██▒▓██▒ ██ ▀█   █  ██▒ ▀█▒ ██  ▓██▒▓██▒ ██ ▀█   █ ")
+    print("   ▓██░ ██▓▒▒██▒▓██  ▀█ ██▒▒██░▄▄▄░▓██  ▒██░▒██▒▓██  ▀█ ██▒")
+    print("   ▒██▄█▓▒ ▒░██░▓██▒  ▐▌██▒░▓█  ██▓▓▓█  ░██░░██░▓██▒  ▐▌██▒")
+    print("   ▒██▒ ░  ░░██░▒██░   ▓██░░▒▓███▀▒▒▒█████▓ ░██░▒██░   ▓██░")
+    print("   ▒▓▒░ ░  ░░▓  ░ ▒░   ▒ ▒  ░▒   ▒ ░▒▓▒ ▒ ▒ ░▓  ░ ▒░   ▒ ▒ ")
+    print("   ░▒ ░      ▒ ░░ ░░   ░ ▒░  ░   ░ ░░▒░ ░ ░  ▒ ░░ ░░   ░ ▒░")
+    print("   ░░        ▒ ░   ░   ░ ░ ░ ░   ░  ░░░ ░ ░  ▒ ░   ░   ░ ░ ")
+    print("             ░           ░       ░    ░      ░           ░ ")
+    print("   PINGuin - Automated Recon Tool")
+    print("")
+
+def use_case():
+    """Return the module path for the given use case, prompting if needed"""
+    case = os.environ.get('SCAN_TYPE')
+    if case == "stealthy":
+        return "modules/stealthy"
+    elif case == "aggressive":
+        return "modules/aggressive"
+    else:
+        choice = input(" [?] Enter scan type (stealthy/aggressive): ")
+        if choice not in ["stealthy", "aggressive"]:
+            print(" [!] Invalid scan type.")
+            exit(1)
+        os.environ['SCAN_TYPE'] = choice
+        return "modules/" + choice
+
+def main():
+    """Main function - provides menu interface with pinned banner"""
+    banner()
+    cmd = ""
+    while cmd != "exit":
+        
+        cmd = input(" $ ")
+
+        if cmd == "help":
+            print(" Available commands:")
+            print("   help       - Show this help message")
+            print("   scan <ip>  - Run network scan module")
+            print("   enum <ip>  - Run enumeration module")
+            print("   full <ip>  - Run full reconnaissance module")
+            print("   status     - Show current configuration status")
+            print("   clear      - Clear the terminal screen")
+            print("   exit       - Exit the tool")
+
+            print("\n Configuration attributes:")
+            print("   ip         - Set target IP address")
+            print("   stype      - Set type of scan (stealthy/aggressive)")
+            print("   fname      - Set folder name for results")
+            print("   config     - Set configuration file path")
+            print("   zombies    - Set zombies configuration file path")
+            print("\n Usage: set <attribute> <value>")
+        
+        elif cmd.startswith("scan"):
+            parts = cmd.split()
+            module = use_case()
+            if len(parts) >= 2:
+                os.environ['IP'] = parts[1]
+            elif os.environ.get('IP') is None:
+                os.environ['IP'] = input(" [?] Enter target IP: ")
+            subprocess.run(["python3", f"{module}/network_scan.py"])
+        
+        elif cmd.startswith("enum"):
+            parts = cmd.split()
+            module = use_case()
+            if len(parts) >= 2:
+                os.environ['IP'] = parts[1]
+            elif os.environ.get('IP') is None:
+                os.environ['IP'] = input(" [?] Enter target IP: ")
+            subprocess.run(["python3", f"{module}/enumeration.py"])
+        
+        elif cmd.startswith("full"):
+            parts = cmd.split()
+            module = use_case()
+            if len(parts) >= 2:
+                os.environ['IP'] = parts[1]
+            elif os.environ.get('IP') is None:
+                os.environ['IP'] = input(" [?] Enter target IP: ")
+            print(" [*] Full reconnaissance module not implemented yet")
+        
+        elif cmd.startswith("set"):
+            parts = cmd.split()
+            if len(parts) < 2:
+                print(" [!] Usage: set <attribute> [value]")
+            else:
+                attr = parts[1].lower()
+                if attr == "ip":
+                    if len(parts) >= 3:
+                        os.environ['IP'] = parts[2]
+                    else:
+                        os.environ['IP'] = input(" [?] Enter IP: ")
+                    print(f" [+] IP set to {os.environ['IP']}")
+                
+                elif attr in ("stype", "use_case"):
+                    if len(parts) >= 3:
+                        choice = parts[2]
+                    else:
+                        choice = input(" [?] Enter scan type (stealthy/aggressive): ")
+                    if choice not in ["stealthy", "aggressive"]:
+                        print(" [!] Invalid scan type.")
+                    else:
+                        os.environ['SCAN_TYPE'] = choice
+                        print(f" [+] Scan type set to {choice}")
+                
+                elif attr == "fname":
+                    if len(parts) >= 3:
+                        os.environ['FNAME'] = parts[2]
+                    else:
+                        os.environ['FNAME'] = input(" [?] Enter folder name: ")
+                    print(f" [+] Results folder set to {os.environ['FNAME']}")
+                
+                elif attr == "config":
+                    if len(parts) >= 3:
+                        config_file = parts[2]
+                        config_loader.load_config(config_file)
+                
+                elif attr == "zombies":
+                    print(" [*] Zombies module not implemented yet")
+
+        elif cmd == "ip":
+            print(f" [*] Current IP: {os.environ.get('IP', 'Not set')}")
+        
+        elif cmd == "stype":
+            scantype = os.environ.get('SCAN_TYPE')
+            print(f" [*] Current scan type: {scantype}")
+        
+        elif cmd == "fname":
+            fname = os.environ.get('FNAME')
+            if fname and not os.path.exists(f"{fname}"):
+                os.mkdir(f"{fname}")
+            print(f" [*] Current results folder: {fname}")
+        
+        elif cmd == "status":
+            print(f" [*] Current configuration:")
+            print(f"     IP: {os.environ.get('IP', 'Not set')}")
+            print(f"     Scan Type: {os.environ.get('SCAN_TYPE', 'Not set')}")
+            print(f"     Results Folder: {os.environ.get('FNAME', 'Not set')}")
+        
+        elif cmd == "clear":
+            os.system('clear')
+            banner()
+
+if __name__ == "__main__":
+    main()
