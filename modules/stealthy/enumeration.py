@@ -74,39 +74,48 @@ def analyze_scan_results():
     """Analyze all scan results and identify services"""
     print(" [*] Analyzing scan results...")
 
-    # Look for both possible file locations and names
-    port_scan_files = []
-    
-    # Check for combined XML
-    possible_files = [
-        f"{folder_name}/merged_results.xml",
-        f"{folder_name}/nmap_output.xml", 
-        "merged_results.xml",
-        "nmap_output.xml"
-    ]
-    
-    for xml_file in possible_files:
-        if os.path.exists(xml_file):
-            port_scan_files.append(xml_file)
-            print(f" [*] Found scan results: {xml_file}")
-
-    # Also check for individual port scans and combine them
-    individual_scans = glob.glob(f"{folder_name}/nmap_port_*.xml")
-    if individual_scans:
-        print(f" [*] Found {len(individual_scans)} individual port scans")
-        port_scan_files.extend(individual_scans)
-
-    if not port_scan_files:
-        print(" [!] No scan results found. Please run network_scan.py first.")
-        print(f" [!] Expected files in: {folder_name}/")
-        return []
-
     all_services = []
-    for xml_file in port_scan_files:
-        print(f" [*] Parsing {xml_file}")
-        services = parse_nmap_xml(xml_file)
-        all_services.extend(services)
-
+    
+    # Check if folder_name exists
+    if not os.path.exists(folder_name):
+        print(f" [!] Results folder not found: {folder_name}")
+        return []
+    
+    # Scan through all subdirectories in the results folder
+    for item in os.listdir(folder_name):
+        item_path = os.path.join(folder_name, item)
+        
+        # Check if it's a directory (likely an IP folder)
+        if os.path.isdir(item_path):
+            ip_folder = item_path
+            
+            # Look for XML files in this IP folder
+            xml_files = [
+                os.path.join(ip_folder, "merged_results.xml"),
+                os.path.join(ip_folder, "nmap_output.xml")
+            ]
+            
+            # Also look for scan_* files
+            xml_files.extend(glob.glob(os.path.join(ip_folder, "scan_*.xml")))
+            xml_files.extend(glob.glob(os.path.join(ip_folder, "nmap_port_*.xml")))
+            
+            for xml_file in xml_files:
+                if os.path.exists(xml_file):
+                    print(f" [*] Parsing {xml_file}")
+                    services = parse_nmap_xml(xml_file)
+                    if services:
+                        all_services.extend(services)
+                        print(f" [*] Found {len(services)} services for IP folder: {item}")
+    
+    # If no IP folders found, check the main folder directly
+    if not all_services:
+        print(f" [*] Checking main folder for XML files...")
+        xml_files = glob.glob(os.path.join(folder_name, "*.xml"))
+        for xml_file in xml_files:
+            print(f" [*] Parsing {xml_file}")
+            services = parse_nmap_xml(xml_file)
+            all_services.extend(services)
+    
     return all_services
 
 
@@ -119,17 +128,31 @@ def add_scan_options(cmd):
 
 def run_targeted_scans(services, target_ip):
     """Run targeted Nmap scans based on discovered services"""
-    print(f" [*] Running stealthy targeted scans for {target_ip}")
-
+    print(f" [*] Running targeted scans for {target_ip}")
+    
+    # Group services by IP (extract from folder structure or parse)
+    services_by_ip = {}
+    
     for service in services:
         if service['state'] != 'open':
             continue
-
-        port = service['port']
-        service_name = service['service'].lower()
-        product = service['product'].lower() if service['product'] else ""
-
-        print(f" [*] Found {service_name} on port {port} ({product})")
+        
+        # Extract IP from context or use the provided target_ip
+        # For now, group all services under the main target IP
+        if target_ip not in services_by_ip:
+            services_by_ip[target_ip] = []
+        services_by_ip[target_ip].append(service)
+    
+    # Run scans for each IP
+    for ip, ip_services in services_by_ip.items():
+        print(f"\n [*] Processing {len(ip_services)} services for {ip}")
+        
+        for service in ip_services:
+            port = service['port']
+            service_name = service['service'].lower()
+            product = service['product'].lower() if service['product'] else ""
+            
+            print(f" [*] Found {service_name} on port {port} ({product}) for IP {ip}")
 
         # Add delays for stealthy scans
         delay = random.uniform(2, 10)
@@ -360,26 +383,33 @@ def main():
     """Main analyzer function"""
     target_ip = os.environ.get("IP")
     if not target_ip:
-        target_ip = input(" [?] Enter target IP: ").strip()
-        if not target_ip:
-            print(" [!] No IP provided. Exiting.")
-            return
-
+        target_ip = input(" [?] Enter target IP (or leave empty to analyze all found IPs): ").strip()
+    
+    # Create results directory if it doesn't exist
+    Path(folder_name).mkdir(parents=True, exist_ok=True)
+    
     # Analyze existing scan results
     services = analyze_scan_results()
-
+    
     if not services:
         print(" [!] No scan results found. Please run network_scan.py first.")
-        print(f" [!] Expected file: {folder_name}/all_ports.xml")
+        print(f" [!] Expected files in: {folder_name}/")
         return
-
+    
     # Generate summary
     generate_summary_report(services)
-
-    # Run targeted scans
-    run_targeted_scans(services, target_ip)
-
-    print(f"\n [*] Stealthy analysis complete!")
+    
+    # If no specific IP provided, analyze all found services
+    if not target_ip:
+        print(" [*] No specific IP provided, analyzing all discovered services")
+        # You might want to extract unique IPs from the services
+        # For now, run scans for all services
+        run_targeted_scans(services, "all_ips")
+    else:
+        # Run targeted scans for the specific IP
+        run_targeted_scans(services, target_ip)
+    
+    print("\n [*] Analysis complete!")
     print(" [*] Check the generated .txt files for detailed results")
 
 
