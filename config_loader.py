@@ -41,8 +41,6 @@ def load_config(config_path):
                             print(f" [!] Invalid scan type: {value}")
                     elif key == 'FNAME':
                         os.environ['FNAME'] = value
-                        if not os.path.exists(value):
-                            os.mkdir(value)
                         print(f" [+] Results folder set: {value}")
                     else:
                         print(f" [!] Unknown configuration key: {key}")

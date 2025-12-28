@@ -365,9 +365,6 @@ def main():
             print(" [!] No IP provided. Exiting.")
             return
 
-    # Create results directory if it doesn't exist
-    Path(folder_name).mkdir(parents=True, exist_ok=True)
-
     # Analyze existing scan results
     services = analyze_scan_results()
 

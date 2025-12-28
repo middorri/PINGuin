@@ -32,14 +32,11 @@ def scan_single_ip(ip, folder_name):
     print(f"\n [*] Scanning IP: {ip}")
     
     # Create IP-specific subfolder
-    ip_folder = Path(folder_name) / ip.replace('/', '_')
-    ip_folder.mkdir(parents=True, exist_ok=True)
+    folder_path = Path(folder_name)
+    folder_path.mkdir(parents=True, exist_ok=True)
     
-    ports_scan = ip_folder / "nmap_ports_scan.txt"
-    XML_OUT = ip_folder / "nmap_output.xml"
-
-    # Create results directory if it doesn't exist
-    ip_folder.mkdir(parents=True, exist_ok=True)
+    ports_scan = folder_path / f"nmap_ports_scan_{ip.replace('/', '_')}.txt"
+    XML_OUT = folder_path / f"nmap_output_{ip.replace('/', '_')}.xml"
     
     # Aggressive nmap command
     nmap_cmd = ["sudo", "nmap", "-T4", "-sS", "--open", "-oX", str(XML_OUT), ip]

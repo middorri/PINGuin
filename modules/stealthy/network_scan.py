@@ -61,15 +61,12 @@ def get_open_ports_from_xml(xml_file, protocol):
 def run_scan_chain(ip, folder_name):
     """Run the 4-scan chain for a single IP"""
     # Create IP-specific subfolder
-    if is_cidr_range(ip):
-        safe_ip = ip.replace('/', '_')
-        folder_name = Path(folder_name) / safe_ip
-        base = f"{folder_name}/scan"
-    else:
-        folder_name = Path(os.environ.get("FNAME", folder_name))
-    folder_name.mkdir(parents=True, exist_ok=True)
+
+    folder_path = Path(folder_name)
+    folder_path.mkdir(parents=True, exist_ok=True)
     
-    base = f"{folder_name}/scan"
+    safe_ip = ip.replace('/', '_')
+    base = f"{folder_name}/scan_{safe_ip}"
     
     # Command 1: Initial TCP SYN Discovery
     scan1_cmd = [

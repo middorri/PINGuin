@@ -66,12 +66,15 @@ def analyze_scan_results():
     print(" [*] Analyzing scan results...")
     
     # Find all port scan XML files - look in the folder_name directory
-    port_scan_files = glob.glob(f"{folder_name}/all_ports.xml")
+    port_scan_files = glob.glob(f"{folder_name}/all_ports_*.xml")
     
     # If not found in folder_name, try current directory as fallback
     if not port_scan_files:
-        port_scan_files = glob.glob("all_ports.xml")
+        port_scan_files = glob.glob(f"{folder_name}/all_ports.xml")
     
+    # Also look for merged results
+    port_scan_files.extend(glob.glob(f"{folder_name}/merged_results*.xml"))
+
     all_services = []
     
     for xml_file in port_scan_files:
@@ -288,9 +291,6 @@ def main():
         if not target_ip:
             print(" [!] No IP provided. Exiting.")
             return
-    
-    # Create results directory if it doesn't exist
-    Path(folder_name).mkdir(parents=True, exist_ok=True)
     
     print(f" [*] Starting analysis for target: {target_ip}")
     
