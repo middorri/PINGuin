@@ -9,9 +9,7 @@ import os
 import subprocess
 import xml.etree.ElementTree as ET
 from pathlib import Path
-import shutil
 import sys
-from datetime import datetime
 import ipaddress
 
 def is_cidr_range(ip):
@@ -32,12 +30,13 @@ def scan_single_ip(ip, folder_name):
     print(f"\n [*] Scanning IP: {ip}")
     
     # Create IP-specific subfolder
-    folder_path = Path(folder_name)
-    folder_path.mkdir(parents=True, exist_ok=True)
+    safe_ip = ip.replace('/', '_')
+    ip_folder = Path(folder_name) / safe_ip
+    ip_folder.mkdir(parents=True, exist_ok=True)
     
-    ports_scan = folder_path / f"nmap_ports_scan_{ip.replace('/', '_')}.txt"
-    XML_OUT = folder_path / f"nmap_output_{ip.replace('/', '_')}.xml"
-    
+    ports_scan = ip_folder / "nmap_ports_scan.txt"
+    XML_OUT = ip_folder / "nmap_output.xml"
+
     # Aggressive nmap command
     nmap_cmd = ["sudo", "nmap", "-T4", "-sS", "--open", "-oX", str(XML_OUT), ip]
 
@@ -162,6 +161,17 @@ def scan_single_ip(ip, folder_name):
                     f.write(f"Port {port}:\n  FAILED TO WRITE combined XML: {e}\n\n")
     else:
         print(f" [!] No open TCP ports found on {ip} for service/version scanning")
+    
+    # Create a symbolic link in the main folder for backward compatibility
+    if combined_path.exists():
+        main_combined_xml = Path(folder_name) / f"all_ports_{safe_ip}.xml"
+        try:
+            if main_combined_xml.exists():
+                main_combined_xml.unlink()
+            main_combined_xml.symlink_to(combined_path)
+            print(f" [*] Created symbolic link: {main_combined_xml} -> {combined_path}")
+        except Exception as e:
+            print(f" [!] Failed to create symbolic link: {e}")
 
 def main():
     """Main function that handles both single IP and CIDR ranges"""
@@ -195,7 +205,8 @@ def main():
         print(f" [*] Expanded to {len(ip_list)} IP addresses")
         print(f" [*] Results will be stored in: {folder_name}/")
         
-        for target_ip in ip_list:
+        for i, target_ip in enumerate(ip_list, 1):
+            print(f"\n [*] Scanning IP {i}/{len(ip_list)}: {target_ip}")
             scan_single_ip(target_ip, folder_name)
             
         print(f"\n [*] Completed scanning all IPs in range {ip}")

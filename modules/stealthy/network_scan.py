@@ -9,10 +9,7 @@ import os
 import subprocess
 import xml.etree.ElementTree as ET
 from pathlib import Path
-import shutil
 import sys
-from datetime import datetime
-import time
 import ipaddress
 
 def is_cidr_range(ip):
@@ -61,12 +58,11 @@ def get_open_ports_from_xml(xml_file, protocol):
 def run_scan_chain(ip, folder_name):
     """Run the 4-scan chain for a single IP"""
     # Create IP-specific subfolder
-
-    folder_path = Path(folder_name)
-    folder_path.mkdir(parents=True, exist_ok=True)
-    
     safe_ip = ip.replace('/', '_')
-    base = f"{folder_name}/scan_{safe_ip}"
+    ip_folder = Path(folder_name) / safe_ip
+    ip_folder.mkdir(parents=True, exist_ok=True)
+    
+    base = f"{ip_folder}/scan"
     
     # Command 1: Initial TCP SYN Discovery
     scan1_cmd = [
@@ -84,8 +80,6 @@ def run_scan_chain(ip, folder_name):
         "-p", "53,67,68,69,123,135,137,138,139,161,162,445,514,631,1434,1900,4500,49152",
         "-oA", f"{base}_udp_key_ports", ip
     ]
-    
-    # Command 4: UDP Service Detection (will be built after scan3)
     
     scan_definitions = [
         {"name": "tcp_syn_discovery", "cmd": scan1_cmd, "xml": f"{base}_tcp_syn_all.xml"},
@@ -197,24 +191,33 @@ def run_scan_chain(ip, folder_name):
         except Exception as e:
             print(f" [!] Error during UDP service detection for {ip}: {e}")
 
-    # Merge all XML results
+    # Merge all XML results for this IP
     print(f"\n [*] Merging scan results for {ip}...")
     all_xml_files = [
         Path(f"{base}_tcp_syn_all.xml"),
-        Path(f"{base}_tcp_service_versions.xml"), 
+        Path(f"{base}_tcp_service_versions.xml") if tcp_open_ports else None,
         Path(f"{base}_udp_key_ports.xml"),
-        Path(f"{base}_udp_service_versions.xml")
+        Path(f"{base}_udp_service_versions.xml") if udp_open_ports else None
     ]
     
     # Only include files that actually exist
-    existing_xml_files = [xml for xml in all_xml_files if xml.exists()]
+    existing_xml_files = [xml for xml in all_xml_files if xml and xml.exists()]
     
     if existing_xml_files:
-        merged_xml = folder_name / "merged_results.xml"
+        merged_xml = ip_folder / "merged_results.xml"
         success = merge_all_xml_results(existing_xml_files, merged_xml)
         
         if success:
-            print(f" [*] All scans completed and merged into {merged_xml}")
+            # Also create a symbolic link in the main folder for backward compatibility
+            main_merged_xml = Path(folder_name) / f"merged_results_{safe_ip}.xml"
+            try:
+                if main_merged_xml.exists():
+                    main_merged_xml.unlink()
+                main_merged_xml.symlink_to(merged_xml)
+            except:
+                pass  # If symlink fails, just continue
+            
+            print(f" [*] All scans for {ip} completed and merged into {merged_xml}")
             return True
         else:
             print(f" [!] Failed to merge scan results for {ip}")

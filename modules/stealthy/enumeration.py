@@ -70,52 +70,69 @@ def parse_nmap_xml(xml_file):
         return []
 
 
-def analyze_scan_results():
-    """Analyze all scan results and identify services"""
-    print(" [*] Analyzing scan results...")
+def analyze_scan_results(ip, folder_name):
+    """Analyze all scan results and identify services for a specific IP"""
+    print(f" [*] Analyzing scan results for {ip}...")
+    
+    safe_ip = ip.replace('/', '_')
+    
+    # Look for results in multiple possible locations
+    possible_locations = [
+        # IP-specific subdirectory
+        f"{folder_name}/{safe_ip}",
+        # Directly in folder_name (for backward compatibility)
+        folder_name,
+        # Current directory (fallback)
+        "."
+    ]
+    
+    port_scan_files = []
+    
+    for location in possible_locations:
+        # Check for merged_results.xml
+        merged_xml = f"{location}/merged_results.xml"
+        if os.path.exists(merged_xml):
+            port_scan_files.append(merged_xml)
+            print(f" [*] Found scan results: {merged_xml}")
+        
+        # Check for IP-specific merged results
+        ip_merged_xml = f"{folder_name}/merged_results_{safe_ip}.xml"
+        if os.path.exists(ip_merged_xml):
+            port_scan_files.append(ip_merged_xml)
+            print(f" [*] Found scan results: {ip_merged_xml}")
+        
+        # Check for nmap_output.xml
+        nmap_output = f"{location}/nmap_output.xml"
+        if os.path.exists(nmap_output):
+            port_scan_files.append(nmap_output)
+            print(f" [*] Found scan results: {nmap_output}")
+        
+        # Check for individual port scans
+        individual_scans = glob.glob(f"{location}/scan_*.xml") + glob.glob(f"{location}/nmap_port_*.xml")
+        if individual_scans:
+            print(f" [*] Found {len(individual_scans)} individual scan files in {location}")
+            port_scan_files.extend(individual_scans)
+
+    # Remove duplicates while preserving order
+    seen = set()
+    unique_files = []
+    for f in port_scan_files:
+        if f not in seen:
+            seen.add(f)
+            unique_files.append(f)
+
+    if not unique_files:
+        print(" [!] No scan results found. Please run network_scan.py first.")
+        print(f" [!] Expected files in: {folder_name}/{safe_ip}/")
+        print(f" [!] Searched locations: {possible_locations}")
+        return []
 
     all_services = []
-    
-    # Check if folder_name exists
-    if not os.path.exists(folder_name):
-        print(f" [!] Results folder not found: {folder_name}")
-        return []
-    
-    # Scan through all subdirectories in the results folder
-    for item in os.listdir(folder_name):
-        item_path = os.path.join(folder_name, item)
-        
-        # Check if it's a directory (likely an IP folder)
-        if os.path.isdir(item_path):
-            ip_folder = item_path
-            
-            # Look for XML files in this IP folder
-            xml_files = [
-                os.path.join(ip_folder, "merged_results.xml"),
-                os.path.join(ip_folder, "nmap_output.xml")
-            ]
-            
-            # Also look for scan_* files
-            xml_files.extend(glob.glob(os.path.join(ip_folder, "scan_*.xml")))
-            xml_files.extend(glob.glob(os.path.join(ip_folder, "nmap_port_*.xml")))
-            
-            for xml_file in xml_files:
-                if os.path.exists(xml_file):
-                    print(f" [*] Parsing {xml_file}")
-                    services = parse_nmap_xml(xml_file)
-                    if services:
-                        all_services.extend(services)
-                        print(f" [*] Found {len(services)} services for IP folder: {item}")
-    
-    # If no IP folders found, check the main folder directly
-    if not all_services:
-        print(f" [*] Checking main folder for XML files...")
-        xml_files = glob.glob(os.path.join(folder_name, "*.xml"))
-        for xml_file in xml_files:
-            print(f" [*] Parsing {xml_file}")
-            services = parse_nmap_xml(xml_file)
-            all_services.extend(services)
-    
+    for xml_file in unique_files:
+        print(f" [*] Parsing {xml_file}")
+        services = parse_nmap_xml(xml_file)
+        all_services.extend(services)
+
     return all_services
 
 
@@ -126,33 +143,23 @@ def add_scan_options(cmd):
     return cmd
 
 
-def run_targeted_scans(services, target_ip):
+def run_targeted_scans(services, target_ip, folder_name):
     """Run targeted Nmap scans based on discovered services"""
-    print(f" [*] Running targeted scans for {target_ip}")
+    print(f" [*] Running stealthy targeted scans for {target_ip}")
     
-    # Group services by IP (extract from folder structure or parse)
-    services_by_ip = {}
-    
+    safe_ip = target_ip.replace('/', '_')
+    ip_folder = Path(folder_name) / safe_ip
+    ip_folder.mkdir(parents=True, exist_ok=True)
+
     for service in services:
         if service['state'] != 'open':
             continue
-        
-        # Extract IP from context or use the provided target_ip
-        # For now, group all services under the main target IP
-        if target_ip not in services_by_ip:
-            services_by_ip[target_ip] = []
-        services_by_ip[target_ip].append(service)
-    
-    # Run scans for each IP
-    for ip, ip_services in services_by_ip.items():
-        print(f"\n [*] Processing {len(ip_services)} services for {ip}")
-        
-        for service in ip_services:
-            port = service['port']
-            service_name = service['service'].lower()
-            product = service['product'].lower() if service['product'] else ""
-            
-            print(f" [*] Found {service_name} on port {port} ({product}) for IP {ip}")
+
+        port = service['port']
+        service_name = service['service'].lower()
+        product = service['product'].lower() if service['product'] else ""
+
+        print(f" [*] Found {service_name} on port {port} ({product})")
 
         # Add delays for stealthy scans
         delay = random.uniform(2, 10)
@@ -161,29 +168,29 @@ def run_targeted_scans(services, target_ip):
 
         # Service detection and routing
         if any(ssh_indicator in service_name for ssh_indicator in ['ssh']):
-            run_ssh_scan(target_ip, port)
+            run_ssh_scan(target_ip, port, str(ip_folder))
         elif any(http_indicator in service_name for http_indicator in ['http', 'www']):
             if 'ssl' in service_name or 'ssl' in product or 'https' in service_name:
-                run_https_scan(target_ip, port)
+                run_https_scan(target_ip, port, str(ip_folder))
             else:
-                run_http_scan(target_ip, port)
+                run_http_scan(target_ip, port, str(ip_folder))
         elif any(ftp_indicator in service_name for ftp_indicator in ['ftp']):
-            run_ftp_scan(target_ip, port)
+            run_ftp_scan(target_ip, port, str(ip_folder))
         elif any(smb_indicator in service_name for smb_indicator in ['smb', 'microsoft-ds', 'netbios']):
-            run_smb_scan(target_ip, port)
+            run_smb_scan(target_ip, port, str(ip_folder))
         elif any(mysql_indicator in service_name for mysql_indicator in ['mysql']):
-            run_mysql_scan(target_ip, port)
+            run_mysql_scan(target_ip, port, str(ip_folder))
         elif any(pgsql_indicator in service_name for pgsql_indicator in ['postgresql', 'pgsql']):
-            run_pgsql_scan(target_ip, port)
+            run_pgsql_scan(target_ip, port, str(ip_folder))
         elif any(rdp_indicator in service_name for rdp_indicator in ['rdp']):
-            run_rdp_scan(target_ip, port)
+            run_rdp_scan(target_ip, port, str(ip_folder))
         elif any(vnc_indicator in service_name for vnc_indicator in ['vnc']):
-            run_vnc_scan(target_ip, port)
+            run_vnc_scan(target_ip, port, str(ip_folder))
         else:
-            run_generic_scan(target_ip, port, service_name)
+            run_generic_scan(target_ip, port, service_name, str(ip_folder))
 
 
-def run_ssh_scan(target_ip, port):
+def run_ssh_scan(target_ip, port, ip_folder):
     """Run SSH-specific security scans"""
     print(f" [SSH] Running stealthy SSH scans on port {port}")
 
@@ -192,13 +199,13 @@ def run_ssh_scan(target_ip, port):
     cmd = [
         "nmap", "-p", port, target_ip,
         "--script", scripts,
-        "-oN", f"{folder_name}/ssh_scan_port_{port}.txt"
+        "-oN", f"{ip_folder}/ssh_scan_port_{port}.txt"
     ]
     cmd = add_scan_options(cmd)
     execute_scan(cmd, "SSH security audit")
 
 
-def run_http_scan(target_ip, port):
+def run_http_scan(target_ip, port, ip_folder):
     """Run HTTP-specific enumeration scans"""
     print(f" [HTTP] Running stealthy HTTP scans on port {port}")
 
@@ -210,13 +217,13 @@ def run_http_scan(target_ip, port):
     cmd = [
         "nmap", "-p", port, target_ip,
         "--script", ",".join(base_scripts),
-        "-oN", f"{folder_name}/http_scan_port_{port}.txt"
+        "-oN", f"{ip_folder}/http_scan_port_{port}.txt"
     ]
     cmd = add_scan_options(cmd)
     execute_scan(cmd, "HTTP enumeration")
 
 
-def run_https_scan(target_ip, port):
+def run_https_scan(target_ip, port, ip_folder):
     """Run HTTPS and SSL-specific scans"""
     print(f" [HTTPS] Running stealthy HTTPS scans on port {port}")
 
@@ -228,13 +235,13 @@ def run_https_scan(target_ip, port):
     cmd = [
         "nmap", "-p", port, target_ip,
         "--script", ",".join(base_scripts),
-        "-oN", f"{folder_name}/https_scan_port_{port}.txt"
+        "-oN", f"{ip_folder}/https_scan_port_{port}.txt"
     ]
     cmd = add_scan_options(cmd)
     execute_scan(cmd, "HTTPS and SSL scan")
 
 
-def run_ftp_scan(target_ip, port):
+def run_ftp_scan(target_ip, port, ip_folder):
     """Run FTP-specific security scans"""
     print(f" [FTP] Running stealthy FTP scans on port {port}")
 
@@ -243,13 +250,13 @@ def run_ftp_scan(target_ip, port):
     cmd = [
         "nmap", "-p", port, target_ip,
         "--script", scripts,
-        "-oN", f"{folder_name}/ftp_scan_port_{port}.txt"
+        "-oN", f"{ip_folder}/ftp_scan_port_{port}.txt"
     ]
     cmd = add_scan_options(cmd)
     execute_scan(cmd, "FTP security audit")
 
 
-def run_smb_scan(target_ip, port):
+def run_smb_scan(target_ip, port, ip_folder):
     """Run SMB-specific enumeration scans"""
     print(f" [SMB] Running stealthy SMB scans on port {port}")
 
@@ -258,13 +265,13 @@ def run_smb_scan(target_ip, port):
     cmd = [
         "nmap", "-p", port, target_ip,
         "--script", scripts,
-        "-oN", f"{folder_name}/smb_scan_port_{port}.txt"
+        "-oN", f"{ip_folder}/smb_scan_port_{port}.txt"
     ]
     cmd = add_scan_options(cmd)
     execute_scan(cmd, "SMB enumeration")
 
 
-def run_mysql_scan(target_ip, port):
+def run_mysql_scan(target_ip, port, ip_folder):
     """Run MySQL-specific enumeration scans"""
     print(f" [MySQL] Running stealthy MySQL scans on port {port}")
 
@@ -273,13 +280,13 @@ def run_mysql_scan(target_ip, port):
     cmd = [
         "nmap", "-p", port, target_ip,
         "--script", scripts,
-        "-oN", f"{folder_name}/mysql_scan_port_{port}.txt"
+        "-oN", f"{ip_folder}/mysql_scan_port_{port}.txt"
     ]
     cmd = add_scan_options(cmd)
     execute_scan(cmd, "MySQL enumeration")
 
 
-def run_pgsql_scan(target_ip, port):
+def run_pgsql_scan(target_ip, port, ip_folder):
     """Run PostgreSQL-specific scans"""
     print(f" [PostgreSQL] Running stealthy PostgreSQL scans on port {port}")
 
@@ -288,26 +295,26 @@ def run_pgsql_scan(target_ip, port):
     cmd = [
         "nmap", "-p", port, target_ip,
         "--script", scripts,
-        "-oN", f"{folder_name}/pgsql_scan_port_{port}.txt"
+        "-oN", f"{ip_folder}/pgsql_scan_port_{port}.txt"
     ]
     cmd = add_scan_options(cmd)
     execute_scan(cmd, "PostgreSQL scan")
 
 
-def run_rdp_scan(target_ip, port):
+def run_rdp_scan(target_ip, port, ip_folder):
     """Run RDP-specific security scans"""
     print(f" [RDP] Running stealthy RDP scans on port {port}")
 
     cmd = [
         "nmap", "-p", port, target_ip,
         "--script", "rdp-enum-encryption,rdp-ntlm-info",
-        "-oN", f"{folder_name}/rdp_scan_port_{port}.txt"
+        "-oN", f"{ip_folder}/rdp_scan_port_{port}.txt"
     ]
     cmd = add_scan_options(cmd)
     execute_scan(cmd, "RDP security audit")
 
 
-def run_vnc_scan(target_ip, port):
+def run_vnc_scan(target_ip, port, ip_folder):
     """Run VNC-specific security scans"""
     print(f" [VNC] Running stealthy VNC scans on port {port}")
 
@@ -316,20 +323,20 @@ def run_vnc_scan(target_ip, port):
     cmd = [
         "nmap", "-p", port, target_ip,
         "--script", scripts,
-        "-oN", f"{folder_name}/vnc_scan_port_{port}.txt"
+        "-oN", f"{ip_folder}/vnc_scan_port_{port}.txt"
     ]
     cmd = add_scan_options(cmd)
     execute_scan(cmd, "VNC security audit")
 
 
-def run_generic_scan(target_ip, port, service_name):
+def run_generic_scan(target_ip, port, service_name, ip_folder):
     """Run generic service version detection"""
     print(f" [*] Running stealthy generic scan for {service_name} on port {port}")
 
     cmd = [
         "nmap", "-p", port, target_ip,
         "-sV", "--version-intensity", "2",
-        "-oN", f"{folder_name}/generic_scan_{service_name}_port_{port}.txt"
+        "-oN", f"{ip_folder}/generic_scan_{service_name}_port_{port}.txt"
     ]
 
     cmd = add_scan_options(cmd)
@@ -355,10 +362,10 @@ def execute_scan(cmd, scan_type_desc):
         print(f" [!] Error running {scan_type_desc}: {e}")
 
 
-def generate_summary_report(services):
+def generate_summary_report(services, ip):
     """Generate a summary report of discovered services"""
     print("\n" + "=" * 60)
-    print(" SCAN SUMMARY REPORT")
+    print(f" SCAN SUMMARY REPORT for {ip}")
     print("=" * 60)
 
     open_services = [s for s in services if s['state'] == 'open']
@@ -383,36 +390,29 @@ def main():
     """Main analyzer function"""
     target_ip = os.environ.get("IP")
     if not target_ip:
-        target_ip = input(" [?] Enter target IP (or leave empty to analyze all found IPs): ").strip()
-    
-    # Create results directory if it doesn't exist
-    Path(folder_name).mkdir(parents=True, exist_ok=True)
-    
+        target_ip = input(" [?] Enter target IP: ").strip()
+        if not target_ip:
+            print(" [!] No IP provided. Exiting.")
+            return
+
     # Analyze existing scan results
-    services = analyze_scan_results()
-    
+    services = analyze_scan_results(target_ip, folder_name)
+
     if not services:
         print(" [!] No scan results found. Please run network_scan.py first.")
-        print(f" [!] Expected files in: {folder_name}/")
+        print(f" [!] Expected file: {folder_name}/{target_ip.replace('/', '_')}/merged_results.xml")
         return
-    
+
     # Generate summary
-    generate_summary_report(services)
-    
-    # If no specific IP provided, analyze all found services
-    if not target_ip:
-        print(" [*] No specific IP provided, analyzing all discovered services")
-        # You might want to extract unique IPs from the services
-        # For now, run scans for all services
-        run_targeted_scans(services, "all_ips")
-    else:
-        # Run targeted scans for the specific IP
-        run_targeted_scans(services, target_ip)
-    
-    print("\n [*] Analysis complete!")
-    print(" [*] Check the generated .txt files for detailed results")
+    generate_summary_report(services, target_ip)
+
+    # Run targeted scans
+    run_targeted_scans(services, target_ip, folder_name)
+
+    print(f"\n [*] Stealthy analysis complete!")
+    safe_ip = target_ip.replace('/', '_')
+    print(f" [*] Check the generated .txt files in {folder_name}/{safe_ip}/ for detailed results")
 
 
 if __name__ == "__main__":
-
     main()
