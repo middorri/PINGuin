@@ -55,6 +55,39 @@ def get_open_ports_from_xml(xml_file, protocol):
         print(f" [!] Error parsing {xml_file}: {e}")
         return []
 
+def is_host_up(ip):
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".xml") as tmp:
+        xml_output = tmp.name
+
+    nmap_cmd = [
+        "nmap",
+        "-sn",
+        "-PE", "-PP", "-PM",
+        "-PS21,22,25,53,80,443",
+        "-PA80,443,53",
+        "-PU53,123,161",
+        "-T1",
+        "--max-retries", "2",
+        "--host-timeout", "5m",
+        "-oX", xml_output,
+        ip
+    ]
+
+    subprocess.run(nmap_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    try:
+        tree = ET.parse(xml_output)
+        root = tree.getroot()
+
+        for host in root.findall("host"):
+            status = host.find("status")
+            if status is not None and status.get("state") == "up":
+                return True
+
+        return False
+    finally:
+        os.remove(xml_output)
+
 def run_scan_chain(ip, folder_name):
     """Run the 4-scan chain for a single IP"""
     # Create IP-specific subfolder
@@ -88,7 +121,6 @@ def run_scan_chain(ip, folder_name):
 
     # Use sudo only if needed and available
     try:
-        subprocess.run(["sudo", "-n", "true"], check=False)
         for scan in scan_definitions:
             scan["cmd"].insert(0, "sudo")
         print(f" [*] Using sudo for raw socket privileges for {ip}")
@@ -332,12 +364,12 @@ def main():
     ip = os.environ.get("IP")
     if not ip:
         ip = input(" [?] Enter target IP or CIDR (e.g., 192.168.1.0/24): ").strip()
-    if not ip:
-        print(" [!] No IP provided. Exiting.")
-        sys.exit(1)
+        if not ip:
+            print(" [!] No IP provided. Exiting.")
+            sys.exit(1)
 
     fname = os.environ.get("FNAME")
-    if fname is not None:
+    if fname:
         folder_name = fname
     else:
         # Create a safe folder name from the IP/CIDR
@@ -361,15 +393,23 @@ def main():
         
         for i, target_ip in enumerate(ip_list, 1):
             print(f"\n [*] Scanning IP {i}/{len(ip_list)}: {target_ip}")
-            scan_single_ip(target_ip, folder_name)
-            
+            if is_host_up(target_ip):
+                scan_single_ip(target_ip, folder_name)
+            else:
+                print(f" [!] Host {target_ip} appears to be down. Going to next IP.")
+                continue
+
         print(f"\n [*] Completed scanning all IPs in range {ip}")
         print(f" [*] Results are in: {folder_name}/")
         
     else:
         # Single IP scan
         print(f" [*] Scanning single IP: {ip}")
-        scan_single_ip(ip, folder_name)
+        if is_host_up(ip):
+            scan_single_ip(ip, folder_name)
+        else:
+            print(f" [!] Host {ip} appears to be down. Exiting.")
+            sys.exit(1)
 
 if __name__ == "__main__":
     main()

@@ -75,6 +75,7 @@ def main():
                 os.environ['IP'] = parts[1]
             elif os.environ.get('IP') is None:
                 os.environ['IP'] = input(" [?] Enter target IP: ")
+            subprocess.run(["sudo", "-n", "true"], check=False)
             subprocess.run(["python3", f"{module}/network_scan.py"])
         
         elif cmd.startswith("enum"):
@@ -84,6 +85,7 @@ def main():
                 os.environ['IP'] = parts[1]
             elif os.environ.get('IP') is None:
                 os.environ['IP'] = input(" [?] Enter target IP: ")
+            subprocess.run(["sudo", "-n", "true"], check=False)
             subprocess.run(["python3", f"{module}/enumeration.py"])
         
         elif cmd.startswith("full"):
@@ -93,6 +95,7 @@ def main():
                 os.environ['IP'] = parts[1]
             elif os.environ.get('IP') is None:
                 os.environ['IP'] = input(" [?] Enter target IP: ")
+            subprocess.run(["sudo", "-n", "true"], check=False)
             subprocess.run(["python3", f"{module}/network_scan.py"])
             subprocess.run(["python3", f"{module}/enumeration.py"])
         
