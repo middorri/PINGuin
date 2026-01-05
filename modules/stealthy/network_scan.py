@@ -11,6 +11,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 import sys
 import ipaddress
+import tempfile
 
 def is_cidr_range(ip):
     """Check if the target is a CIDR range (like /24)"""
@@ -346,8 +347,8 @@ def merge_host_ports(existing_host, new_host):
 
 def scan_single_ip(ip, folder_name):
     """Perform comprehensive scan on a single IP"""
-    print(f"\n [*] Starting comprehensive 4-scan chain for {ip}")
-    print(" [*] Scan chain: TCP SYN Discovery → TCP Service Detection → UDP Discovery → UDP Service Detection")
+    print(f"\n [*] Starting comprehensive 5-scan chain for {ip}")
+    print(" [*] Scan chain: Host Up Check → TCP SYN Discovery → TCP Service Detection → UDP Discovery → UDP Service Detection")
     print(" [*] Note: This will take significant time due to stealth settings")
     
     success = run_scan_chain(ip, folder_name)
