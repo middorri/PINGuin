@@ -73,7 +73,7 @@ def is_host_up(ip):
         "-oX", xml_output,
         ip
     ]
-
+    print(f" [*] Checking if {ip} is up...")
     subprocess.run(nmap_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     try:
@@ -395,6 +395,7 @@ def main():
         for i, target_ip in enumerate(ip_list, 1):
             print(f"\n [*] Scanning IP {i}/{len(ip_list)}: {target_ip}")
             if is_host_up(target_ip):
+                print(" [*] Host is up. Proceeding with scan.")
                 scan_single_ip(target_ip, folder_name)
             else:
                 print(f" [!] Host {target_ip} appears to be down. Going to next IP.")
@@ -407,6 +408,7 @@ def main():
         # Single IP scan
         print(f" [*] Scanning single IP: {ip}")
         if is_host_up(ip):
+            print(" [*] Host is up. Proceeding with scan.")
             scan_single_ip(ip, folder_name)
         else:
             print(f" [!] Host {ip} appears to be down. Exiting.")
