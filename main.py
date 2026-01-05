@@ -65,7 +65,7 @@ def main():
             print("   stype      - Set type of scan (stealthy/aggressive)")
             print("   fname      - Set folder name for results")
             print("   config     - Set configuration file path")
-            print("   zombies    - Set zombies configuration file path")
+            print("   zombies    - Set zombies configuration file path/ USR/PASS/IP")
             print("\n Usage: set <attribute> <value>")
         
         elif cmd.startswith("scan"):
@@ -135,8 +135,20 @@ def main():
                         config_file = parts[2]
                         config_loader.load_config(config_file)
                 
-                elif attr == "zombies":
-                    print(" [*] Zombies module not implemented yet")
+                elif attr == "zombie":
+                    os.environ.set('ZOMBIE', 'enabled')
+                    if len(parts) == 2:
+                        os.environ['USERNAME'] = parts[2]
+                    elif len(parts) == 3:
+                        os.environ['USERNAME'] = parts[2]
+                        os.environ['PASSWORD'] = parts[3]
+                    elif: len(parts) == 4:
+                        os.environ['USERNAME'] = parts[2]
+                        os.environ['PASSWORD'] = parts[3]
+                        os.environ['ZOMBIE_IP'] = parts[4]
+                    else:
+                        os.environ['USERNAME'] = input(" [?] Enter zombie username: ")
+                        os.environ['PASSWORD'] = input(" [?] Enter zombie password: ")
 
         elif cmd == "ip":
             print(f" [*] Current IP: {os.environ.get('IP', 'Not set')}")

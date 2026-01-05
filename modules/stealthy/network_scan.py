@@ -97,11 +97,18 @@ def run_scan_chain(ip, folder_name):
     ip_folder.mkdir(parents=True, exist_ok=True)
     
     base = f"{ip_folder}/scan"
+
+    # Prepare zombie SSH command if enabled
+    if os.environ.get('ZOMBIE') == 'enabled':
+        ZOMBIE_USER = os.environ.get('USERNAME')
+        ZOMBIE_PASS = os.environ.get('PASSWORD')
+        ZOMBIE_IP = os.environ.get('ZOMBIE_IP')
+        ssh_command = f"sshpass -p '{ZOMBIE_PASS}' ssh -o BatchMode=yes {ZOMBIE_USER}@{ZOMBIE_IP}"
     
     # Command 1: Initial TCP SYN Discovery
     scan1_cmd = [
-        "nmap", "-sS", "-p-", "-T2", "--max-rate", "100", "--scan-delay", "500ms", 
-        "--max-retries", "1", "-f", "--data-length", "24", "--source-port", "53",
+        "nmap", "-sS", "-p-", "-T2", "--host-timeout", "0", "--max-rate", "100", "--scan-delay", "500ms", 
+        "--max-retries", "3", "-f", "--data-length", "24", "--source-port", "53",
         "-PS21,22,23,25,53,80,110,143,443,993,995", 
         "-PA21,22,23,25,53,80,110,143,443,993,995",
         "-oA", f"{base}_tcp_syn_all", ip
@@ -111,14 +118,18 @@ def run_scan_chain(ip, folder_name):
     # Command 3: UDP Discovery (Common Services)
     scan3_cmd = [
         "nmap", "-sU", "-T1", "--max-rate", "10", "--scan-delay", "2s",
-        "-p", "53,67,68,69,123,135,137,138,139,161,162,445,514,631,1434,1900,4500,49152",
+        "-p", "53,67,68,69,123,135,137,138,139,161,162,445,500,514,631,1434,1701,1900,1812,1813,4500,5353,11211,27015,47808,49152",
         "-oA", f"{base}_udp_key_ports", ip
     ]
     
-    scan_definitions = [
-        {"name": "tcp_syn_discovery", "cmd": scan1_cmd, "xml": f"{base}_tcp_syn_all.xml"},
-        {"name": "udp_discovery", "cmd": scan3_cmd, "xml": f"{base}_udp_key_ports.xml"}
-    ]
+    if os.environ.get('ZOMBIE') == 'enabled':
+        scan1_cmd = ssh_command.split() + scan1_cmd
+        scan3_cmd = ssh_command.split() + scan3_cmd
+    else:
+        scan_definitions = [
+            {"name": "tcp_syn_discovery", "cmd": scan1_cmd, "xml": f"{base}_tcp_syn_all.xml"},
+            {"name": "udp_discovery", "cmd": scan3_cmd, "xml": f"{base}_udp_key_ports.xml"}
+        ]
 
     # Use sudo only if needed and available
     try:
@@ -160,7 +171,7 @@ def run_scan_chain(ip, folder_name):
     if tcp_open_ports:
         ports_str = ",".join(map(str, tcp_open_ports))
         scan2_cmd = [
-            "nmap", "-sS", "-T2", "--max-rate", "50", "--scan-delay", "1s",
+            "nmap", "-sS", "-T1", "--max-rate", "50", "--scan-delay", "1s",
             "-sV", "--version-intensity", "5", "-f", "--data-length", "24",
             "-p", ports_str, "-oA", f"{base}_tcp_service_versions", ip
         ]
@@ -196,7 +207,7 @@ def run_scan_chain(ip, folder_name):
     if udp_open_ports:
         ports_str = ",".join(map(str, udp_open_ports))
         scan4_cmd = [
-            "nmap", "-sU", "-T1", "--max-rate", "5", "--scan-delay", "3s",
+            "nmap", "-sU", "-T0", "--max-rate", "5", "--scan-delay", "3s",
             "-sV", "--version-intensity", "3", "-sC", "-p", ports_str,
             "-oA", f"{base}_udp_service_versions", ip
         ]

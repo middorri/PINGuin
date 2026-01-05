@@ -34,3 +34,39 @@ def set_fname(fname):
 def get_fname():
     """Get results folder name"""
     return FNAME
+
+def set_is_zombie(zombie):
+    """Set if zombie mode is enabled"""
+    global ZOMBIE
+    ZOMBIE = zombie
+
+def get_is_zombie():
+    """Get if zombie mode is enabled"""
+    return ZOMBIE
+
+def set_zombie_username(username):
+    """Set username"""
+    global USERNAME
+    USERNAME = username
+
+def get_zombie_username():
+    """Get username"""
+    return USERNAME
+
+def set_zombie_password(password):
+    """Set password"""
+    global PASSWORD
+    PASSWORD = password
+
+def get_zombie_password():
+    """Get password"""
+    return PASSWORD
+
+def set_zombie_ip(ip):
+    """Set zombie IP"""
+    global ZOMBIE_IP
+    ZOMBIE_IP = ip
+
+def get_zombie_ip():
+    """Get zombie IP"""
+    return ZOMBIE_IP
