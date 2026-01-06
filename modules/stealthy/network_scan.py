@@ -126,13 +126,13 @@ def run_scan_chain(ip, folder_name):
         f"-oA /tmp/scan_tcp_syn_all "
         f"{ip}"
     ]
-        scp1_cmd = [
-            "sshpass", "-p", ZOMBIE_PASS,
-            "scp",
-            "-o", "StrictHostKeyChecking=no",
-            f"{ZOMBIE_USER}@{ZOMBIE_IP}:/tmp/scan_tcp_syn_all.*",
-            f"{base}/"
-]
+    scp1_cmd = [
+        "sshpass", "-p", ZOMBIE_PASS,
+        "scp",
+        "-o", "StrictHostKeyChecking=no",
+        f"{ZOMBIE_USER}@{ZOMBIE_IP}:/tmp/scan_tcp_syn_all.*",
+        f"{base}/"
+    ]
     else:
         scan1_cmd = [
             "nmap", "-sS", "-p-", "-T2", "--host-timeout", "0", "--max-rate", "100", "--scan-delay", "500ms", 
@@ -178,9 +178,9 @@ def run_scan_chain(ip, folder_name):
     if os.environ.get('ZOMBIE') == 'enabled':
         scan_definitions = [
             {"name": "tcp_syn_discovery", "cmd": scan1_cmd, "xml": f"{base}_tcp_syn_all.xml"},
-            {"name": "scp_cleanup", "cmd": scp1_cmd},
+            {"name": "tcp_scp_local_save", "cmd": scp1_cmd},
             {"name": "udp_discovery", "cmd": scan3_cmd, "xml": f"{base}_udp_key_ports.xml"},
-            {"name": "scp_cleanup", "cmd": scp3_cmd}
+            {"name": "udp_scp_local_save", "cmd": scp3_cmd}
         ]
     else:
         scan_definitions = [
