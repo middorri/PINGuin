@@ -59,21 +59,44 @@ def get_open_ports_from_xml(xml_file, protocol):
 def is_host_up(ip):
     with tempfile.NamedTemporaryFile(delete=False, suffix=".xml") as tmp:
         xml_output = tmp.name
-
-    nmap_cmd = [
-        "nmap",
-        "-sn",
-        "-PE", "-PP", "-PM",
-        "-PS21,22,25,53,80,443",
-        "-PA80,443,53",
-        "-PU53,123,161",
-        "-T1",
-        "--max-retries", "2",
-        "--host-timeout", "5m",
-        "-oX", xml_output,
-        ip
-    ]
-    print(f" [*] Checking if {ip} is up...")
+    
+    if os.osenviron.get('ZOMBIE') == 'enabled':
+        ZOMBIE_USER = os.environ.get('USERNAME')
+        ZOMBIE_PASS = os.environ.get('PASSWORD')
+        ZOMBIE_IP = os.environ.get('ZOMBIE_IP')
+        nmap_cmd = [
+            "sshpass", "-p", ZOMBIE_PASS,
+            "ssh",
+            "-o", "StrictHostKeyChecking=no",
+            "-tt",
+            f"{ZOMBIE_USER}@{ZOMBIE_IP}", "cd /tmp &&",
+            "sudo -S -p '' nmap -sn "
+            "-PE -PP -PM "
+            "-PS21,22,25,53,80,443 "
+            "-PA80,443,53 "
+            "-PU53,123,161 "
+            "-T1 "
+            "--max-retries 2 "
+            "--host-timeout 5m "
+            f"-oX /tmp/host_up_check.xml "
+            f"{ip}"
+        ]
+        print(f" [*] Checking if {ip} is up via zombie host...")
+    else:
+        nmap_cmd = [
+            "nmap",
+            "-sn",
+            "-PE", "-PP", "-PM",
+            "-PS21,22,25,53,80,443",
+            "-PA80,443,53",
+            "-PU53,123,161",
+            "-T1",
+            "--max-retries", "2",
+            "--host-timeout", "5m",
+            "-oX", xml_output,
+            ip
+        ]
+        print(f" [*] Checking if {ip} is up...")
     subprocess.run(nmap_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     try:

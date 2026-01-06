@@ -42,6 +42,15 @@ def load_config(config_path):
                     elif key == 'FNAME':
                         os.environ['FNAME'] = value
                         print(f" [+] Results folder set: {value}")
+                    elif key == 'ZOMBIE_IP':
+                        os.environ['ZOMBIE_IP'] = value
+                        print(f" [+] Zombie IP set: {value}")
+                    elif key == 'ZOMBIE_USER':
+                        os.environ['USERNAME'] = value
+                        print(f" [+] Zombie username set: {value}")
+                    elif key == 'ZOMBIE_PASS':
+                        os.environ['PASSWORD'] = value
+                        print(f" [+] Zombie password set")
                     else:
                         print(f" [!] Unknown configuration key: {key}")
         
