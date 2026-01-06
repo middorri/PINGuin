@@ -174,10 +174,7 @@ def run_scan_chain(ip, folder_name):
             "-oA", f"{base}_udp_key_ports",
             ip
         ]
-    
-    if os.environ.get('ZOMBIE') == 'enabled':
-        scan1_cmd = ssh_command.split() + scan1_cmd
-        scan3_cmd = ssh_command.split() + scan3_cmd
+
     if os.environ.get('ZOMBIE') == 'enabled':
         scan_definitions = [
             {"name": "tcp_syn_discovery", "cmd": scan1_cmd, "xml": f"{base}_tcp_syn_all.xml"},
