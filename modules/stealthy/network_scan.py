@@ -316,7 +316,7 @@ def run_scan_chain(ip, folder_name):
                 f"{ZOMBIE_USER}@{ZOMBIE_IP}:/tmp/scan_udp_service_versions.*",
                 f"{base}/"
             ]
-        else
+        else:
             scan4_cmd = [
                 "nmap", "-sU", "-T0", "--max-rate", "5", "--scan-delay", "3s",
                 "-sV", "--version-intensity", "3", "-sC", "-p", ports_str,

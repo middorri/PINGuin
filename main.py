@@ -27,21 +27,38 @@ def banner():
     print("   PINGuin - Automated Recon Tool")
     print("")
 
+
 def check_zombie_ready(zombie_ip, user, password):
-    cmd = f"""
-    sshpass -p '{password}' ssh -o StrictHostKeyChecking=no -tt {user}@{zombie_ip} '
-    set -e
+    ssh_cmd = (
+        "sshpass -p {pw} ssh "
+        "-o StrictHostKeyChecking=no "
+        "-o BatchMode=no "
+        "-o ConnectTimeout=10 "
+        "-tt {user}@{ip} "
+        "\""
+        "set -e; "
 
-    [ -d /home/{user} ] || exit 10
-    [ -w /home/{user} ] || sudo chown -R {user}:{user} /home/{user}
-    [ -w /home/{user} ] || sudo chmod 700 /home/{user}
+        # 1. Home directory exists
+        "[ -d /home/{user} ] || exit 10; "
 
-    cd /home/{user} || exit 11
-    sudo -n true || exit 12
-    command -v nmap >/dev/null 2>&1 || exit 13
-    '
-    """
-    return subprocess.call(cmd, shell=True)
+        # 2. Ensure ownership (requires sudo)
+        "sudo -S chown -R {user}:{user} /home/{user} <<< {pw} || exit 11; "
+        "sudo -S chmod 700 /home/{user} <<< {pw} || exit 12; "
+
+        # 3. Can enter home
+        "cd /home/{user} || exit 13; "
+
+        # 4. Sudo usable
+        "sudo -S true <<< {pw} || exit 14; "
+
+        # 5. Nmap installed
+        "command -v nmap >/dev/null 2>&1 || exit 15; "
+
+        "exit 0"
+        "\""
+    ).format(user=user, ip=zombie_ip, pw=password)
+
+    return subprocess.call(ssh_cmd, shell=True)
 
 
 def use_case():
