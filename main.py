@@ -157,7 +157,7 @@ def main():
                     zombie_args = parts[2:]  # everything after "set zombie"
                     if not zombie_args:
                         print("[-] Usage: set zombie <config|user> [pass] [ip]")
-                        return
+                        continue
                     # set zombie config [path]
                     if zombie_args[0] == "config":
                         if len(zombie_args) >= 2:
@@ -165,25 +165,25 @@ def main():
                         else:
                             config_path = input(" [?] Enter zombie config file path: ")
                         config_loader.load_zombie_config(config_path)
-                        return
+                        continue
                     # set zombie user
                     if len(zombie_args) == 1:
                         os.environ['USERNAME'] = zombie_args[0]
                         os.environ['PASSWORD'] = input(" [?] Enter zombie password: ")
                         os.environ['ZOMBIE_IP'] = input(" [?] Enter zombie IP address: ")
-                        return
+                        continue
                     # set zombie user pass
                     if len(zombie_args) == 2:
                         os.environ['USERNAME'] = zombie_args[0]
                         os.environ['PASSWORD'] = zombie_args[1]
                         os.environ['ZOMBIE_IP'] = input(" [?] Enter zombie IP address: ")
-                        return
+                        continue
                     # set zombie user pass ip
                     if len(zombie_args) == 3:
                         os.environ['USERNAME'] = zombie_args[0]
                         os.environ['PASSWORD'] = zombie_args[1]
                         os.environ['ZOMBIE_IP'] = zombie_args[2]
-                        return
+                        continue
                     print("[-] Invalid zombie syntax")
 
         
