@@ -103,39 +103,100 @@ def run_scan_chain(ip, folder_name):
         ZOMBIE_USER = os.environ.get('USERNAME')
         ZOMBIE_PASS = os.environ.get('PASSWORD')
         ZOMBIE_IP = os.environ.get('ZOMBIE_IP')
-        ssh_command = f"sshpass -p '{ZOMBIE_PASS}' ssh -o BatchMode=yes {ZOMBIE_USER}@{ZOMBIE_IP}"
-    
+        ssh_command = f"sshpass -p '{ZOMBIE_PASS}' ssh -o BatchMode=yes {ZOMBIE_USER}@{ZOMBIE_IP} && sudo su && "
+
     # Command 1: Initial TCP SYN Discovery
-    scan1_cmd = [
-        "nmap", "-sS", "-p-", "-T2", "--host-timeout", "0", "--max-rate", "100", "--scan-delay", "500ms", 
-        "--max-retries", "3", "-f", "--data-length", "24", "--source-port", "53",
-        "-PS21,22,23,25,53,80,110,143,443,993,995", 
-        "-PA21,22,23,25,53,80,110,143,443,993,995",
-        "-oA", f"{base}_tcp_syn_all", ip
-    ]
+    if os.environ.get('ZOMBIE') == 'enabled':
+        scan1_cmd = [
+            "sshpass", "-p", ZOMBIE_PASS,
+            "scp",
+            "-o", "StrictHostKeyChecking=no",
+            "-tt",
+            f"{ZOMBIE_USER}@{ZOMBIE_IP}",
+            "sudo -S nmap -sS -p- -T2 "
+            "--host-timeout 0 "
+            "--max-rate 100 "
+            "--scan-delay 500ms "
+            "--max-retries 3 "
+            "-f "
+            "--data-length 24 "
+            "--source-port 53 "
+            "-PS21,22,23,25,53,80,110,143,443,993,995 "
+            "-PA21,22,23,25,53,80,110,143,443,993,995 "
+            f"-oA {base}_tcp_syn_all "
+            f"{ip}"
+        ]
+        scp1_cmd = [
+            "sshpass", "-p", ZOMBIE_PASS,
+            "scp",
+            "-o", "StrictHostKeyChecking=no",
+            f"{ZOMBIE_USER}@{ZOMBIE_IP}:/tmp/{base}_tcp_syn_all.*",
+            "./{base}/"
+        ]
+    else:
+        scan1_cmd = [
+            "nmap", "-sS", "-p-", "-T2", "--host-timeout", "0", "--max-rate", "100", "--scan-delay", "500ms", 
+            "--max-retries", "3", "-f", "--data-length", "24", "--source-port", "53",
+            "-PS21,22,23,25,53,80,110,143,443,993,995", 
+            "-PA21,22,23,25,53,80,110,143,443,993,995",
+            "-oA", f"{base}_tcp_syn_all", ip
+        ]
     
     # Command 2: TCP Service Detection (will be built after scan1)
     # Command 3: UDP Discovery (Common Services)
-    scan3_cmd = [
-        "nmap", "-sU", "-T1", "--max-rate", "10", "--scan-delay", "2s",
-        "-p", "53,67,68,69,123,135,137,138,139,161,162,445,500,514,631,1434,1701,1900,1812,1813,4500,5353,11211,27015,47808,49152",
-        "-oA", f"{base}_udp_key_ports", ip
-    ]
+    if os.environ.get('ZOMBIE') == 'enabled':
+        scan3_cmd = [
+            "sshpass", "-p", ZOMBIE_PASS,
+            "scp",
+            "-o", "StrictHostKeyChecking=no",
+            "-tt",
+            f"{ZOMBIE_USER}@{ZOMBIE_IP}",
+            "sudo -S -p '' nmap -sU -T1 "
+            "--max-rate 10 "
+            "--scan-delay 2s "
+            "-p 53,67,68,69,123,135,137,138,139,161,162,445,500,514,631,1434,1701,1900,1812,1813,4500,5353,11211,27015,47808,49152 "
+            f"-oA {base}_udp_key_ports "
+            f"{ip}"
+        ]
+        scp3_cmd = [
+            "sshpass", "-p", ZOMBIE_PASS,
+            "scp",
+            "-o", "StrictHostKeyChecking=no",
+            f"{ZOMBIE_USER}@{ZOMBIE_IP}:/tmp/{base}_udp_key_ports.*",
+            "./{base}/"
+        ]
+    else:
+        scan3_cmd = [
+            "nmap", "-sU", "-T1",
+            "--max-rate", "10",
+            "--scan-delay", "2s",
+            "-p", "53,67,68,69,123,135,137,138,139,161,162,445,500,514,631,1434,1701,1900,1812,1813,4500,5353,11211,27015,47808,49152",
+            "-oA", f"{base}_udp_key_ports",
+            ip
+        ]
     
     if os.environ.get('ZOMBIE') == 'enabled':
         scan1_cmd = ssh_command.split() + scan1_cmd
         scan3_cmd = ssh_command.split() + scan3_cmd
-
-    scan_definitions = [
-        {"name": "tcp_syn_discovery", "cmd": scan1_cmd, "xml": f"{base}_tcp_syn_all.xml"},
-        {"name": "udp_discovery", "cmd": scan3_cmd, "xml": f"{base}_udp_key_ports.xml"}
-    ]
+    if os.environ.get('ZOMBIE') == 'enabled':
+        scan_definitions = [
+            {"name": "tcp_syn_discovery", "cmd": scan1_cmd, "xml": f"{base}_tcp_syn_all.xml"},
+            {"name": "scp_cleanup", "cmd": scp1_cmd},
+            {"name": "udp_discovery", "cmd": scan3_cmd, "xml": f"{base}_udp_key_ports.xml"},
+            {"name": "scp_cleanup", "cmd": scp3_cmd}
+        ]
+    else:
+        scan_definitions = [
+            {"name": "tcp_syn_discovery", "cmd": scan1_cmd, "xml": f"{base}_tcp_syn_all.xml"},
+            {"name": "udp_discovery", "cmd": scan3_cmd, "xml": f"{base}_udp_key_ports.xml"}
+        ]
 
     # Use sudo only if needed and available
     try:
-        for scan in scan_definitions:
-            scan["cmd"].insert(0, "sudo")
-        print(f" [*] Using sudo for raw socket privileges for {ip}")
+        if os.environ.get('ZOMBIE') != 'enabled':
+            for scan in scan_definitions:
+                scan["cmd"].insert(0, "sudo")
+            print(f" [*] Using sudo for raw socket privileges for {ip}")
     except:
         print(f" [*] Running without sudo for {ip} (some scan types may be limited)")
 

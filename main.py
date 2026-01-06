@@ -138,18 +138,24 @@ def main():
                 elif attr == "zombie":
                     os.environ['ZOMBIE'] = "enabled"
                     if len(parts) == 2:
-                    #    os.environ['USERNAME'] = parts[2]
-                    #elif len(parts) == 3:
-                    #    os.environ['USERNAME'] = parts[2]
-                    #    os.environ['PASSWORD'] = parts[3]
-                    #elif len(parts) == 4:
-                    #    os.environ['USERNAME'] = parts[2]
-                    #    os.environ['PASSWORD'] = parts[3]
-                    #    os.environ['ZOMBIE_IP'] = parts[4]
-                    #else:
+                        # set zombie
                         os.environ['USERNAME'] = input(" [?] Enter zombie username: ")
                         os.environ['PASSWORD'] = input(" [?] Enter zombie password: ")
                         os.environ['ZOMBIE_IP'] = input(" [?] Enter zombie IP address: ")
+                    elif len(parts) == 3:
+                        # set zombie USER
+                        os.environ['USERNAME'] = parts[2]
+                    elif len(parts) == 4:
+                        # set zombie USER PASS
+                        os.environ['USERNAME'] = parts[2]
+                        os.environ['PASSWORD'] = parts[3]
+                    elif len(parts) == 5:
+                        # set zombie USER PASS IP
+                        os.environ['USERNAME'] = parts[2]
+                        os.environ['PASSWORD'] = parts[3]
+                        os.environ['ZOMBIE_IP'] = parts[4]
+                    else:
+                        print("[-] Invalid zombie syntax")
 
         elif cmd == "ip":
             print(f" [*] Current IP: {os.environ.get('IP', 'Not set')}")
