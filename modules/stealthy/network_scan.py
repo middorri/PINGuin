@@ -125,11 +125,11 @@ def run_scan_chain(ip, folder_name):
     if os.environ.get('ZOMBIE') == 'enabled':
         scan1_cmd = ssh_command.split() + scan1_cmd
         scan3_cmd = ssh_command.split() + scan3_cmd
-    else:
-        scan_definitions = [
-            {"name": "tcp_syn_discovery", "cmd": scan1_cmd, "xml": f"{base}_tcp_syn_all.xml"},
-            {"name": "udp_discovery", "cmd": scan3_cmd, "xml": f"{base}_udp_key_ports.xml"}
-        ]
+
+    scan_definitions = [
+        {"name": "tcp_syn_discovery", "cmd": scan1_cmd, "xml": f"{base}_tcp_syn_all.xml"},
+        {"name": "udp_discovery", "cmd": scan3_cmd, "xml": f"{base}_udp_key_ports.xml"}
+    ]
 
     # Use sudo only if needed and available
     try:
