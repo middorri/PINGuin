@@ -156,7 +156,7 @@ def main():
                     os.environ['ZOMBIE'] = "enabled"
                     if len(parts) == 2:
                         if parts[2] == 'config':
-                            if let(parts) == 3
+                            if let(parts) == 3:
                                 config_path = parts[3]
                                 config_loader.load_zombie_config(config_path)
                             else:
