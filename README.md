@@ -82,6 +82,9 @@ text
 IP 192.168.1.100
 STYPE stealthy
 FNAME scan_results
+ZOMBIE_USER <USERNAME>
+ZOMBIE_PASS <PASSWORD>
+ZOMBIE_IP <IP>
 
 Load it with: set config config.txt
 File Structure

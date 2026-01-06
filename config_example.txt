@@ -1,3 +1,7 @@
 IP 45.33.32.156
 FNAME pinguin_results
 STYPE aggressive
+
+#ZOMBIE_USER <USERNAME>
+#ZOMBIE_PASS <PASSWORD>
+#ZOMBIE_IP <IP>
