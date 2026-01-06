@@ -154,38 +154,37 @@ def main():
                 
                 elif attr == "zombie":
                     os.environ['ZOMBIE'] = "enabled"
-                    # zombie
-                    if len(parts) == 1:
-                        print("[-] Usage: zombie <config|user> [pass] [ip]")
+                    zombie_args = parts[2:]  # everything after "set zombie"
+                    if not zombie_args:
+                        print("[-] Usage: set zombie <config|user> [pass] [ip]")
                         return
-                    # zombie config [path]
-                    if parts[1] == "config":
-                        if len(parts) >= 3:
-                            config_path = parts[2]
+                    # set zombie config [path]
+                    if zombie_args[0] == "config":
+                        if len(zombie_args) >= 2:
+                            config_path = zombie_args[1]
                         else:
                             config_path = input(" [?] Enter zombie config file path: ")
                         config_loader.load_zombie_config(config_path)
                         return
-                    # zombie user
-                    if len(parts) == 2:
-                        os.environ['USERNAME'] = parts[1]
+                    # set zombie user
+                    if len(zombie_args) == 1:
+                        os.environ['USERNAME'] = zombie_args[0]
                         os.environ['PASSWORD'] = input(" [?] Enter zombie password: ")
                         os.environ['ZOMBIE_IP'] = input(" [?] Enter zombie IP address: ")
                         return
-                    # zombie user pass
-                    if len(parts) == 3:
-                        os.environ['USERNAME'] = parts[1]
-                        os.environ['PASSWORD'] = parts[2]
+                    # set zombie user pass
+                    if len(zombie_args) == 2:
+                        os.environ['USERNAME'] = zombie_args[0]
+                        os.environ['PASSWORD'] = zombie_args[1]
                         os.environ['ZOMBIE_IP'] = input(" [?] Enter zombie IP address: ")
                         return
-                    # zombie user pass ip
-                    if len(parts) == 4:
-                        os.environ['USERNAME'] = parts[1]
-                        os.environ['PASSWORD'] = parts[2]
-                        os.environ['ZOMBIE_IP'] = parts[3]
+                    # set zombie user pass ip
+                    if len(zombie_args) == 3:
+                        os.environ['USERNAME'] = zombie_args[0]
+                        os.environ['PASSWORD'] = zombie_args[1]
+                        os.environ['ZOMBIE_IP'] = zombie_args[2]
                         return
-                    else:
-                        print("[-] Invalid zombie syntax")
+                    print("[-] Invalid zombie syntax")
 
         
         elif cmd.startswith("zombie"):
