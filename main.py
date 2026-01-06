@@ -27,6 +27,23 @@ def banner():
     print("   PINGuin - Automated Recon Tool")
     print("")
 
+def check_zombie_ready(zombie_ip, user, password):
+    cmd = f"""
+    sshpass -p '{password}' ssh -o StrictHostKeyChecking=no -tt {user}@{zombie_ip} '
+    set -e
+
+    [ -d /home/{user} ] || exit 10
+    [ -w /home/{user} ] || sudo chown -R {user}:{user} /home/{user}
+    [ -w /home/{user} ] || sudo chmod 700 /home/{user}
+
+    cd /home/{user} || exit 11
+    sudo -n true || exit 12
+    command -v nmap >/dev/null 2>&1 || exit 13
+    '
+    """
+    return subprocess.call(cmd, shell=True)
+
+
 def use_case():
     """Return the module path for the given use case, prompting if needed"""
     case = os.environ.get('SCAN_TYPE')
@@ -138,10 +155,18 @@ def main():
                 elif attr == "zombie":
                     os.environ['ZOMBIE'] = "enabled"
                     if len(parts) == 2:
-                        # set zombie
-                        os.environ['USERNAME'] = input(" [?] Enter zombie username: ")
-                        os.environ['PASSWORD'] = input(" [?] Enter zombie password: ")
-                        os.environ['ZOMBIE_IP'] = input(" [?] Enter zombie IP address: ")
+                        if parts[2] == 'config':
+                            if let(parts) == 3
+                                config_path = parts[3]
+                                config_loader.load_zombie_config(config_path)
+                            else:
+                                config_path = input(" [?] Enter zombie config file path: ")
+                                config_loader.load_zombie_config(config_path)
+                        else:
+                            # set zombie
+                            os.environ['USERNAME'] = input(" [?] Enter zombie username: ")
+                            os.environ['PASSWORD'] = input(" [?] Enter zombie password: ")
+                            os.environ['ZOMBIE_IP'] = input(" [?] Enter zombie IP address: ")
                     elif len(parts) == 3:
                         # set zombie USER
                         os.environ['USERNAME'] = parts[2]
@@ -156,6 +181,36 @@ def main():
                         os.environ['ZOMBIE_IP'] = parts[4]
                     else:
                         print("[-] Invalid zombie syntax")
+        
+        elif cmd.startswith("zombie"):
+            parts = cmd.split()
+            if len(parts) < 2:
+                print(" [!] Usage: zombie stauts/check")
+            else:
+                attr = parts[1].lower()
+            if attr == "status":
+                if os.environ.get('ZOMBIE') == 'enabled':
+                    print(" [*] Zombie configuration is enabled.")
+                    print(f"     USERNAME: {os.environ.get('USERNAME', 'Not set')}")
+                    print(f"     PASSWORD: {os.environ.get('PASSWORD', 'Not set')}")
+                    print(f"     ZOMBIE_IP: {os.environ.get('ZOMBIE_IP', 'Not set')}")
+                else:
+                    print(" [*] Zombie configuration is disabled.")
+            if attr == "check":
+                if os.environ.get('ZOMBIE') == 'enabled':
+                    zombie_ip = os.environ.get('ZOMBIE_IP')
+                    user = os.environ.get('USERNAME')
+                    password = os.environ.get('PASSWORD')
+                    print(" [*] Checking zombie readiness...")
+                    ret = check_zombie_ready(zombie_ip, user, password)
+                    if ret == 0:
+                        print(" [+] Zombie is ready for use.")
+                    else:
+                        print(f" [!] Zombie check failed with code {ret}.")
+                else:
+                    print(" [!] Zombie configuration is not set.")
+
+
 
         elif cmd == "ip":
             print(f" [*] Current IP: {os.environ.get('IP', 'Not set')}")

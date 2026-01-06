@@ -147,10 +147,10 @@ def run_scan_chain(ip, folder_name):
     if os.environ.get('ZOMBIE') == 'enabled':
         scan3_cmd = [
             "sshpass", "-p", ZOMBIE_PASS,
-            "scp",
+            "ssh",
             "-o", "StrictHostKeyChecking=no",
             "-tt",
-            f"{ZOMBIE_USER}@{ZOMBIE_IP}",
+            f"{ZOMBIE_USER}@{ZOMBIE_IP}", "cd /tmp &&",
             "sudo -S -p '' nmap -sU -T1 "
             "--max-rate 10 "
             "--scan-delay 2s "
@@ -228,15 +228,42 @@ def run_scan_chain(ip, folder_name):
     # Command 2: TCP Service Detection (only if we found open ports)
     if tcp_open_ports:
         ports_str = ",".join(map(str, tcp_open_ports))
-        scan2_cmd = [
-            "nmap", "-sS", "-T1", "--max-rate", "50", "--scan-delay", "1s",
-            "-sV", "--version-intensity", "5", "-f", "--data-length", "24",
-            "-p", ports_str, "-oA", f"{base}_tcp_service_versions", ip
-        ]
+        if os.environ.get('ZOMBIE') == 'enabled':
+            scan2_cmd = [
+                "sshpass", "-p", ZOMBIE_PASS,
+                "ssh",
+                "-o", "StrictHostKeyChecking=no",
+                "-tt",
+                f"{ZOMBIE_USER}@{ZOMBIE_IP}", "cd /tmp &&",
+                "sudo -S -p '' nmap -sS -T1 "
+                "--max-rate 50 "
+                "--scan-delay 1s "
+                "-sV "
+                "--version-intensity 5 "
+                "-f "
+                "--data-length 24 "
+                f"-p {ports_str} "
+                f"-oA /tmp/scan_tcp_service_versions "
+                f"{ip}"
+            ]
+            scp2_cmd = [
+                "sshpass", "-p", ZOMBIE_PASS,
+                "scp",
+                "-o", "StrictHostKeyChecking=no",
+                f"{ZOMBIE_USER}@{ZOMBIE_IP}:/tmp/scan_tcp_service_versions.*",
+                f"{base}/"
+            ]
+        else:
+            scan2_cmd = [
+                "nmap", "-sS", "-T1", "--max-rate", "50", "--scan-delay", "1s",
+                "-sV", "--version-intensity", "5", "-f", "--data-length", "24",
+                "-p", ports_str, "-oA", f"{base}_tcp_service_versions", ip
+            ]
         
         # Add sudo if needed
-        if "sudo" in scan_definitions[0]["cmd"]:
-            scan2_cmd.insert(0, "sudo")
+        if os.environ.get('ZOMBIE') != 'enabled':
+            if "sudo" in scan_definitions[0]["cmd"]:
+                scan2_cmd.insert(0, "sudo")
             
         print(f"\n [*] Running TCP service detection for {ip} on ports: {ports_str}")
         print(f" [CMD]: {' '.join(scan2_cmd)}")
@@ -244,6 +271,7 @@ def run_scan_chain(ip, folder_name):
         try:
             proc = subprocess.Popen(scan2_cmd, stdout=subprocess.PIPE, 
                                   stderr=subprocess.STDOUT, text=True, bufsize=1)
+            subprocess.run(scp2_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
             if proc.stdout:
                 for line in proc.stdout:
@@ -264,15 +292,41 @@ def run_scan_chain(ip, folder_name):
     # Command 4: UDP Service Detection (only if we found open ports)
     if udp_open_ports:
         ports_str = ",".join(map(str, udp_open_ports))
-        scan4_cmd = [
-            "nmap", "-sU", "-T0", "--max-rate", "5", "--scan-delay", "3s",
-            "-sV", "--version-intensity", "3", "-sC", "-p", ports_str,
-            "-oA", f"{base}_udp_service_versions", ip
-        ]
+        if os.environ.get('ZOMBIE') == 'enabled':
+            scan4_cmd = [
+                "sshpass", "-p", ZOMBIE_PASS,
+                "ssh",
+                "-o", "StrictHostKeyChecking=no",
+                "-tt",
+                f"{ZOMBIE_USER}@{ZOMBIE_IP}", "cd /tmp &&",
+                "sudo -S -p '' nmap -sU -T0 "
+                "--max-rate 5 "
+                "--scan-delay 3s "
+                "-sV "
+                "--version-intensity 3 "
+                "-sC "
+                f"-p {ports_str} "
+                f"-oA /tmp/scan_udp_service_versions "
+                f"{ip}"
+            ]
+            scp4_cmd = [
+                "sshpass", "-p", ZOMBIE_PASS,
+                "scp",
+                "-o", "StrictHostKeyChecking=no",
+                f"{ZOMBIE_USER}@{ZOMBIE_IP}:/tmp/scan_udp_service_versions.*",
+                f"{base}/"
+            ]
+        else
+            scan4_cmd = [
+                "nmap", "-sU", "-T0", "--max-rate", "5", "--scan-delay", "3s",
+                "-sV", "--version-intensity", "3", "-sC", "-p", ports_str,
+                "-oA", f"{base}_udp_service_versions", ip
+            ]
         
         # Add sudo if needed
-        if "sudo" in scan_definitions[0]["cmd"]:
-            scan4_cmd.insert(0, "sudo")
+        if os.environ.get('ZOMBIE') != 'enabled':
+            if "sudo" in scan_definitions[0]["cmd"]:
+                scan4_cmd.insert(0, "sudo")
             
         print(f"\n [*] Running UDP service detection for {ip} on ports: {ports_str}")
         print(f" [CMD]: {' '.join(scan4_cmd)}")
@@ -280,6 +334,8 @@ def run_scan_chain(ip, folder_name):
         try:
             proc = subprocess.Popen(scan4_cmd, stdout=subprocess.PIPE, 
                                   stderr=subprocess.STDOUT, text=True, bufsize=1)
+
+            subprocess.run(scp4_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
             if proc.stdout:
                 for line in proc.stdout:
@@ -444,7 +500,7 @@ def main():
     else:
         # Create a safe folder name from the IP/CIDR
         safe_name = ip.replace('/', '_')
-        folder_name = f"{safe_name}_stealth_results"
+        folder_name = f"{safe_name}_results"
 
     # Create main results directory
     Path(folder_name).mkdir(parents=True, exist_ok=True)
