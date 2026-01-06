@@ -96,7 +96,7 @@ def run_scan_chain(ip, folder_name):
     ip_folder = Path(folder_name) / safe_ip
     ip_folder.mkdir(parents=True, exist_ok=True)
     
-    base = f"{ip_folder}/"
+    base = f"{ip_folder}"
 
     # Prepare zombie SSH command if enabled
     if os.environ.get('ZOMBIE') == 'enabled':
