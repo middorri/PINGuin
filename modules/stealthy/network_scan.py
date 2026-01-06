@@ -107,32 +107,32 @@ def run_scan_chain(ip, folder_name):
 
     # Command 1: Initial TCP SYN Discovery
     if os.environ.get('ZOMBIE') == 'enabled':
-        scan1_cmd = [
-            "sshpass", "-p", ZOMBIE_PASS,
-            "scp",
-            "-o", "StrictHostKeyChecking=no",
-            "-tt",
-            f"{ZOMBIE_USER}@{ZOMBIE_IP}",
-            "sudo -S nmap -sS -p- -T2 "
-            "--host-timeout 0 "
-            "--max-rate 100 "
-            "--scan-delay 500ms "
-            "--max-retries 3 "
-            "-f "
-            "--data-length 24 "
-            "--source-port 53 "
-            "-PS21,22,23,25,53,80,110,143,443,993,995 "
-            "-PA21,22,23,25,53,80,110,143,443,993,995 "
-            f"-oA {base}_tcp_syn_all "
-            f"{ip}"
-        ]
+    scan1_cmd = [
+        "sshpass", "-p", ZOMBIE_PASS,
+        "ssh",
+        "-o", "StrictHostKeyChecking=no",
+        "-tt",
+        f"{ZOMBIE_USER}@{ZOMBIE_IP}",
+        "sudo -S -p '' nmap -sS -p- -T2 "
+        "--host-timeout 0 "
+        "--max-rate 100 "
+        "--scan-delay 500ms "
+        "--max-retries 3 "
+        "-f "
+        "--data-length 24 "
+        "--source-port 53 "
+        "-PS21,22,23,25,53,80,110,143,443,993,995 "
+        "-PA21,22,23,25,53,80,110,143,443,993,995 "
+        f"-oA /tmp/scan_tcp_syn_all "
+        f"{ip}"
+    ]
         scp1_cmd = [
             "sshpass", "-p", ZOMBIE_PASS,
             "scp",
             "-o", "StrictHostKeyChecking=no",
-            f"{ZOMBIE_USER}@{ZOMBIE_IP}:/tmp/{base}_tcp_syn_all.*",
-            "./{base}/"
-        ]
+            f"{ZOMBIE_USER}@{ZOMBIE_IP}:/tmp/scan_tcp_syn_all.*",
+            f"{base}/"
+]
     else:
         scan1_cmd = [
             "nmap", "-sS", "-p-", "-T2", "--host-timeout", "0", "--max-rate", "100", "--scan-delay", "500ms", 
