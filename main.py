@@ -138,15 +138,15 @@ def main():
                 elif attr == "zombie":
                     os.environ['ZOMBIE'] = "enabled"
                     if len(parts) == 2:
-                        os.environ['USERNAME'] = parts[2]
-                    elif len(parts) == 3:
-                        os.environ['USERNAME'] = parts[2]
-                        os.environ['PASSWORD'] = parts[3]
-                    elif len(parts) == 4:
-                        os.environ['USERNAME'] = parts[2]
-                        os.environ['PASSWORD'] = parts[3]
-                        os.environ['ZOMBIE_IP'] = parts[4]
-                    else:
+                    #    os.environ['USERNAME'] = parts[2]
+                    #elif len(parts) == 3:
+                    #    os.environ['USERNAME'] = parts[2]
+                    #    os.environ['PASSWORD'] = parts[3]
+                    #elif len(parts) == 4:
+                    #    os.environ['USERNAME'] = parts[2]
+                    #    os.environ['PASSWORD'] = parts[3]
+                    #    os.environ['ZOMBIE_IP'] = parts[4]
+                    #else:
                         os.environ['USERNAME'] = input(" [?] Enter zombie username: ")
                         os.environ['PASSWORD'] = input(" [?] Enter zombie password: ")
                         os.environ['ZOMBIE_IP'] = input(" [?] Enter zombie IP address: ")
