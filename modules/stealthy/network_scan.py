@@ -90,13 +90,13 @@ def is_host_up(ip):
         os.remove(xml_output)
 
 def run_scan_chain(ip, folder_name):
-    """Run the 4-scan chain for a single IP"""
+    """Run the 5-scan chain for a single IP"""
     # Create IP-specific subfolder
     safe_ip = ip.replace('/', '_')
     ip_folder = Path(folder_name) / safe_ip
     ip_folder.mkdir(parents=True, exist_ok=True)
     
-    base = f"{ip_folder}/scan"
+    base = f"{ip_folder}/"
 
     # Prepare zombie SSH command if enabled
     if os.environ.get('ZOMBIE') == 'enabled':
