@@ -70,7 +70,7 @@ def is_host_up(ip):
             "-o", "StrictHostKeyChecking=no",
             "-tt",
             f"{ZOMBIE_USER}@{ZOMBIE_IP}", "cd /tmp &&",
-            "sudo -S -p '' nmap -sn "
+            "echo '{ZOMBIE_PASS}' | sudo -S nmap -sn "
             "-PE -PP -PM "
             "-PS21,22,25,53,80,443 "
             "-PA80,443,53 "
@@ -136,7 +136,7 @@ def run_scan_chain(ip, folder_name):
             "-o", "StrictHostKeyChecking=no",
             "-tt",
             f"{ZOMBIE_USER}@{ZOMBIE_IP}", "cd /tmp &&",
-            "sudo -S -p '' nmap -sS -p- -T2 "
+            "echo '{ZOMBIE_PASS}' | sudo -S nmap -sS -p- -T2 "
             "--host-timeout 0 "
             "--max-rate 100 "
             "--scan-delay 500ms "
@@ -174,7 +174,7 @@ def run_scan_chain(ip, folder_name):
             "-o", "StrictHostKeyChecking=no",
             "-tt",
             f"{ZOMBIE_USER}@{ZOMBIE_IP}", "cd /tmp &&",
-            "sudo -S -p '' nmap -sU -T1 "
+            "echo '{ZOMBIE_PASS}' | sudo -S nmap -sU -T1 "
             "--max-rate 10 "
             "--scan-delay 2s "
             "-p 53,67,68,69,123,135,137,138,139,161,162,445,500,514,631,1434,1701,1900,1812,1813,4500,5353,11211,27015,47808,49152 "
@@ -258,7 +258,7 @@ def run_scan_chain(ip, folder_name):
                 "-o", "StrictHostKeyChecking=no",
                 "-tt",
                 f"{ZOMBIE_USER}@{ZOMBIE_IP}", "cd /tmp &&",
-                "sudo -S -p '' nmap -sS -T1 "
+                "echo '{ZOMBIE_PASS}' | sudo -S nmap -sS -T1 "
                 "--max-rate 50 "
                 "--scan-delay 1s "
                 "-sV "
@@ -322,7 +322,7 @@ def run_scan_chain(ip, folder_name):
                 "-o", "StrictHostKeyChecking=no",
                 "-tt",
                 f"{ZOMBIE_USER}@{ZOMBIE_IP}", "cd /tmp &&",
-                "sudo -S -p '' nmap -sU -T0 "
+                "echo '{ZOMBIE_PASS}' | sudo -S nmap -sU -T0 "
                 "--max-rate 5 "
                 "--scan-delay 3s "
                 "-sV "
