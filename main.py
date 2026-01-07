@@ -58,7 +58,7 @@ def check_zombie_ready(zombie_ip, user, password):
         "\""
     ).format(user=user, ip=zombie_ip, pw=password)
 
-    return " [*] " + str(subprocess.call(ssh_cmd, shell=True))
+    return subprocess.call(ssh_cmd, shell=True)
 
 def use_case():
     """Return the module path for the given use case, prompting if needed"""
