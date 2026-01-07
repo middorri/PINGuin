@@ -348,7 +348,7 @@ def execute_scan(cmd, scan_type_desc):
     print(f" [*] Running {scan_type_desc}: {' '.join(cmd)}")
 
     # Check if zombie mode is enabled
-    if os.environ['ZOMBBIE'] == 'enabled':
+    if os.environ['ZOMBIE'] == 'enabled':
         # Get zombie credentials from environment variables
         zombie_user = os.environ.get("ZOMBIE_USER", "")
         zombie_pass = os.environ.get("ZOMBIE_PASS", "")

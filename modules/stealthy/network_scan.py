@@ -60,7 +60,7 @@ def is_host_up(ip):
     with tempfile.NamedTemporaryFile(delete=False, suffix=".xml") as tmp:
         xml_output = tmp.name
     
-    if os.osenviron.get('ZOMBIE') == 'enabled':
+    if os.environ.get('ZOMBIE') == 'enabled':
         ZOMBIE_USER = os.environ.get('USERNAME')
         ZOMBIE_PASS = os.environ.get('PASSWORD')
         ZOMBIE_IP = os.environ.get('ZOMBIE_IP')
