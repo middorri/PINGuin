@@ -350,19 +350,19 @@ def execute_scan(cmd, scan_type_desc):
     # Check if zombie mode is enabled
     if os.environ.get('ZOMBIE') == 'enabled':
         # Get zombie credentials from environment variables
-        zombie_user = os.environ.get("ZOMBIE_USER", "")
-        zombie_pass = os.environ.get("ZOMBIE_PASS", "")
-        zombie_ip = os.environ.get("ZOMBIE_IP", "")
-        
+        ZOMBIE_USER = os.environ.get("ZOMBIE_USER", "")
+        ZOMBIE_PASS = os.environ.get("ZOMBIE_PASS", "")
+        ZOMBIE_IP = os.environ.get("ZOMBIE_IP", "")
+
         # Create the SSH wrapper command
         original_cmd_str = ' '.join(cmd)
         ssh_wrapper = [
-            "sshpass", "-p", zombie_pass,
+            "sshpass", "-p", ZOMBIE_PASS,
             "ssh",
             "-o", "StrictHostKeyChecking=no",
             "-tt",
-            f"{zombie_user}@{zombie_ip}",
-            f"cd /tmp && {original_cmd_str}"
+            f"{ZOMBIE_USER}@{ZOMBIE_IP}",
+            f"echo '{ZOMBIE_PASS}' | sudo -S {original_cmd_str}"
         ]
         scp_save = [
             "sshpass", "-p", ZOMBIE_PASS,
@@ -373,7 +373,7 @@ def execute_scan(cmd, scan_type_desc):
         ]
         # Use the SSH wrapper instead of the original command
         cmd = ssh_wrapper
-        print(f" [*] Running through zombie host {zombie_ip} as {zombie_user}")
+        print(f" [*] Running through zombie host {ZOMBIE_IP} as {ZOMBIE_USER}")
     
     # Adjust timeout based on scan type
     timeout = 600 if "stealthy" in scan_type_desc.lower() else 300

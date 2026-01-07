@@ -82,6 +82,33 @@ def is_host_up(ip):
             f"{ip}"
         ]
         print(f" [*] Checking if {ip} is up via zombie host...")
+
+        # Run the nmap command on zombie
+        result = subprocess.run(nmap_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+        if result.returncode != 0:
+            print(f" [!] Nmap command failed: {result.stderr}")
+            if os.path.exists(xml_output):
+                os.remove(xml_output)
+            return False
+
+        # Copy the XML file from zombie to local
+        scp_cmd = [
+            "sshpass", "-p", ZOMBIE_PASS,
+            "scp",
+            "-o", "StrictHostKeyChecking=no",
+            f"{ZOMBIE_USER}@{ZOMBIE_IP}:/tmp/host_up_check.xml",
+            xml_output
+        ]
+
+        result = subprocess.run(scp_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+        if result.returncode != 0:
+                    print(f" [!] Failed to copy XML from zombie: {result.stderr}")
+                    if os.path.exists(xml_output):
+                        os.remove(xml_output)
+                    return False
+
     else:
         nmap_cmd = [
             "nmap",
@@ -379,10 +406,10 @@ def run_scan_chain(ip, folder_name):
     # Merge all XML results for this IP
     print(f"\n [*] Merging scan results for {ip}...")
     all_xml_files = [
-        Path(f"{base}_tcp_syn_all.xml"),
-        Path(f"{base}_tcp_service_versions.xml") if tcp_open_ports else None,
-        Path(f"{base}_udp_key_ports.xml"),
-        Path(f"{base}_udp_service_versions.xml") if udp_open_ports else None
+        Path(f"{base}scan_tcp_syn_all.xml"),
+        Path(f"{base}scan_tcp_service_versions.xml") if tcp_open_ports else None,
+        Path(f"{base}scan_udp_key_ports.xml"),
+        Path(f"{base}scan_udp_service_versions.xml") if udp_open_ports else None
     ]
     
     # Only include files that actually exist
