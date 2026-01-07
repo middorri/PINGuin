@@ -344,9 +344,37 @@ def run_generic_scan(target_ip, port, service_name, ip_folder):
 
 
 def execute_scan(cmd, scan_type_desc):
-    """Execute a scan command with error handling"""
+    """Execute a scan command with error handling, optionally through a zombie host"""
     print(f" [*] Running {scan_type_desc}: {' '.join(cmd)}")
 
+    # Check if zombie mode is enabled
+    if os.environ['ZOMBBIE'] == 'enabled':
+        # Get zombie credentials from environment variables
+        zombie_user = os.environ.get("ZOMBIE_USER", "")
+        zombie_pass = os.environ.get("ZOMBIE_PASS", "")
+        zombie_ip = os.environ.get("ZOMBIE_IP", "")
+        
+        # Create the SSH wrapper command
+        original_cmd_str = ' '.join(cmd)
+        ssh_wrapper = [
+            "sshpass", "-p", zombie_pass,
+            "ssh",
+            "-o", "StrictHostKeyChecking=no",
+            "-tt",
+            f"{zombie_user}@{zombie_ip}",
+            f"cd /tmp && {original_cmd_str}"
+        ]
+        scp_save = [
+            "sshpass", "-p", ZOMBIE_PASS,
+            "scp",
+            "-o", "StrictHostKeyChecking=no",
+            f"{ZOMBIE_USER}@{ZOMBIE_IP}:/tmp/{ip_folder}",
+            f"{ip_folder}/"
+        ]
+        # Use the SSH wrapper instead of the original command
+        cmd = ssh_wrapper
+        print(f" [*] Running through zombie host {zombie_ip} as {zombie_user}")
+    
     # Adjust timeout based on scan type
     timeout = 600 if "stealthy" in scan_type_desc.lower() else 300
 
@@ -354,6 +382,9 @@ def execute_scan(cmd, scan_type_desc):
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
         if result.returncode == 0:
             print(f" [*] {scan_type_desc} completed successfully")
+            if os.environ['ZOMBBIE'] == 'enabled':
+                print(f" [*] Retrieving results from zombie host...")
+                subprocess.run(scp_save, capture_output=True, text=True, timeout=timeout)
         else:
             print(f" [!] {scan_type_desc} had issues: {result.stderr}")
     except subprocess.TimeoutExpired:
