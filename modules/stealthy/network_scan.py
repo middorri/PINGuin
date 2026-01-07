@@ -70,7 +70,7 @@ def is_host_up(ip):
             "-o", "StrictHostKeyChecking=no",
             "-tt",
             f"{ZOMBIE_USER}@{ZOMBIE_IP}", "cd /tmp &&",
-            "echo '{ZOMBIE_PASS}' | sudo -S nmap -sn "
+            f"echo '{ZOMBIE_PASS}' | sudo -S nmap -sn "
             "-PE -PP -PM "
             "-PS21,22,25,53,80,443 "
             "-PA80,443,53 "
@@ -109,8 +109,12 @@ def is_host_up(ip):
                 return True
 
         return False
+    except ET.ParseError as e:
+        print(f" [!] Failed to parse XML for {ip}: {e}")
+        return False
     finally:
-        os.remove(xml_output)
+        if os.path.exists(xml_output):
+            os.remove(xml_output)
 
 def run_scan_chain(ip, folder_name):
     """Run the 5-scan chain for a single IP"""
@@ -136,7 +140,7 @@ def run_scan_chain(ip, folder_name):
             "-o", "StrictHostKeyChecking=no",
             "-tt",
             f"{ZOMBIE_USER}@{ZOMBIE_IP}", "cd /tmp &&",
-            "echo '{ZOMBIE_PASS}' | sudo -S nmap -sS -p- -T2 "
+            f"echo '{ZOMBIE_PASS}' | sudo -S nmap -sS -p- -T2 "
             "--host-timeout 0 "
             "--max-rate 100 "
             "--scan-delay 500ms "
@@ -174,7 +178,7 @@ def run_scan_chain(ip, folder_name):
             "-o", "StrictHostKeyChecking=no",
             "-tt",
             f"{ZOMBIE_USER}@{ZOMBIE_IP}", "cd /tmp &&",
-            "echo '{ZOMBIE_PASS}' | sudo -S nmap -sU -T1 "
+            f"echo '{ZOMBIE_PASS}' | sudo -S nmap -sU -T1 "
             "--max-rate 10 "
             "--scan-delay 2s "
             "-p 53,67,68,69,123,135,137,138,139,161,162,445,500,514,631,1434,1701,1900,1812,1813,4500,5353,11211,27015,47808,49152 "
@@ -185,8 +189,8 @@ def run_scan_chain(ip, folder_name):
             "sshpass", "-p", ZOMBIE_PASS,
             "scp",
             "-o", "StrictHostKeyChecking=no",
-            f"{ZOMBIE_USER}@{ZOMBIE_IP}:/tmp/{base}_udp_key_ports.*",
-            "./{base}/"
+            f"{ZOMBIE_USER}@{ZOMBIE_IP}:/tmp/scan_udp_key_ports.*",
+            f"{base}/"
         ]
     else:
         scan3_cmd = [
@@ -245,7 +249,7 @@ def run_scan_chain(ip, folder_name):
             continue
 
     # Get open TCP ports from scan1 results
-    tcp_xml = Path(f"{base}_tcp_syn_all.xml")
+    tcp_xml = Path(f"{base}/scan_tcp_syn_all.xml")
     tcp_open_ports = get_open_ports_from_xml(tcp_xml, "tcp")
     
     # Command 2: TCP Service Detection (only if we found open ports)
@@ -258,7 +262,7 @@ def run_scan_chain(ip, folder_name):
                 "-o", "StrictHostKeyChecking=no",
                 "-tt",
                 f"{ZOMBIE_USER}@{ZOMBIE_IP}", "cd /tmp &&",
-                "echo '{ZOMBIE_PASS}' | sudo -S nmap -sS -T1 "
+                f"echo '{ZOMBIE_PASS}' | sudo -S nmap -sS -T1 "
                 "--max-rate 50 "
                 "--scan-delay 1s "
                 "-sV "
@@ -309,7 +313,7 @@ def run_scan_chain(ip, folder_name):
             print(f" [!] Error during TCP service detection for {ip}: {e}")
 
     # Get open UDP ports from scan3 results  
-    udp_xml = Path(f"{base}_udp_key_ports.xml")
+    udp_xml = Path(f"{base}/scan_udp_key_ports.xml")
     udp_open_ports = get_open_ports_from_xml(udp_xml, "udp")
     
     # Command 4: UDP Service Detection (only if we found open ports)
@@ -322,7 +326,7 @@ def run_scan_chain(ip, folder_name):
                 "-o", "StrictHostKeyChecking=no",
                 "-tt",
                 f"{ZOMBIE_USER}@{ZOMBIE_IP}", "cd /tmp &&",
-                "echo '{ZOMBIE_PASS}' | sudo -S nmap -sU -T0 "
+                f"echo '{ZOMBIE_PASS}' | sudo -S nmap -sU -T0 "
                 "--max-rate 5 "
                 "--scan-delay 3s "
                 "-sV "
