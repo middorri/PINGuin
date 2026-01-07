@@ -58,7 +58,6 @@ Set configuration:
 Examples
 
 Quick scan:
-text
 
 $ python3 main.py
 $ set ip 192.168.1.100
@@ -66,7 +65,6 @@ $ set stype aggressive
 $ scan
 
 Stealthy scan with custom folder:
-text
 
 $ set ip 10.0.0.0/24
 $ set stype stealthy
@@ -76,7 +74,6 @@ $ scan
 Configuration File
 
 Create a config file with settings:
-text
 
 # config.txt
 IP 192.168.1.100
@@ -88,7 +85,6 @@ ZOMBIE_IP <IP>
 
 Load it with: set config config.txt
 File Structure
-text
 
 ├── main.py                 # Main interface
 ├── config_loader.py        # Configuration loader
