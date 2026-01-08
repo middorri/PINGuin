@@ -13,6 +13,8 @@ import glob
 import time
 import random
 
+
+
 # Initial environment-based IP attempt
 ip = os.environ.get("IP")
 if not ip:
@@ -136,10 +138,24 @@ def analyze_scan_results(ip, folder_name):
     return all_services
 
 
-def add_scan_options(cmd):
+def add_scan_options(cmd, is_ssh_mode=False):
     """Add stealth options to Nmap command"""
     stealth_opts = ["-T2", "--scan-delay", "1s", "--max-rtt-timeout", "500ms"]
-    cmd[1:1] = stealth_opts
+    
+    if is_ssh_mode:
+        # Find where 'nmap' starts in the command and insert options before it
+        for i, part in enumerate(cmd):
+            if part == "nmap":
+                cmd[i:i] = stealth_opts
+                break
+    else:
+        # For local mode, insert after 'nmap'
+        if "nmap" in cmd:
+            nmap_index = cmd.index("nmap")
+            cmd[nmap_index+1:nmap_index+1] = stealth_opts
+        else:
+            cmd[1:1] = stealth_opts  # Fallback
+    
     return cmd
 
 
@@ -195,14 +211,49 @@ def run_ssh_scan(target_ip, port, ip_folder):
     print(f" [SSH] Running stealthy SSH scans on port {port}")
 
     scripts = "ssh2-enum-algos,ssh-hostkey,ssh-auth-methods"
+    
+    ZOMBIE_USER = os.environ.get("ZOMBIE_USER")
+    ZOMBIE_PASS = os.environ.get("ZOMBIE_PASS")
+    ZOMBIE_IP = os.environ.get("ZOMBIE_IP")
 
-    cmd = [
-        "nmap", "-p", port, target_ip,
-        "--script", scripts,
-        "-oN", f"{ip_folder}/ssh_scan_port_{port}.txt"
-    ]
-    cmd = add_scan_options(cmd)
+    if os.environ.get('ZOMBIE') == 'enabled':
+        # Build the remote command with proper quoting
+        remote_command = f"cd /tmp && echo '{ZOMBIE_PASS}' | sudo -S nmap -T2 --scan-delay 1s --max-rtt-timeout 500ms -p {port} {target_ip} --script {scripts} -oN /tmp/ssh_scan_port_{port}.txt"
+        
+        cmd = [
+            "sshpass", "-p", ZOMBIE_PASS,
+            "ssh",
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "ConnectTimeout=30",
+            f"{ZOMBIE_USER}@{ZOMBIE_IP}",
+            remote_command
+        ]
+        
+        scp_save = [
+            "sshpass", "-p", ZOMBIE_PASS,
+            "scp",
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "ConnectTimeout=30",
+            f"{ZOMBIE_USER}@{ZOMBIE_IP}:/tmp/ssh_scan_port_{port}.txt",
+            f"{ip_folder}/"
+        ]
+    else:
+        cmd = [
+            "nmap", "-p", port, target_ip,
+            "--script", scripts,
+            "-oN", f"{ip_folder}/ssh_scan_port_{port}.txt"
+        ]
+        cmd = add_scan_options(cmd, is_ssh_mode=False)
+    
     execute_scan(cmd, "SSH security audit")
+    if os.environ.get('ZOMBIE') == 'enabled':
+        execute_scan(scp_save, "Copying SSH scan results from zombie")
+    
+    if os.environ.get('ZOMBIE') == 'enabled':
+        # Wait a moment for the file to be written
+        import time
+        time.sleep(2)
+        execute_scan(scp_save, "Copying SSH scan results from zombie")
 
 
 def run_http_scan(target_ip, port, ip_folder):
@@ -213,14 +264,49 @@ def run_http_scan(target_ip, port, ip_folder):
         "http-enum", "http-headers", "http-methods", "http-title",
         "http-server-header", "http-robots.txt"
     ]
+    
+    ZOMBIE_USER = os.environ.get("ZOMBIE_USER")
+    ZOMBIE_PASS = os.environ.get("ZOMBIE_PASS")
+    ZOMBIE_IP = os.environ.get("ZOMBIE_IP")
 
-    cmd = [
-        "nmap", "-p", port, target_ip,
-        "--script", ",".join(base_scripts),
-        "-oN", f"{ip_folder}/http_scan_port_{port}.txt"
-    ]
-    cmd = add_scan_options(cmd)
+    if os.environ.get('ZOMBIE') == 'enabled':
+        # Build the remote command with proper quoting
+        remote_command = f"cd /tmp && echo '{ZOMBIE_PASS}' | sudo -S nmap -T2 --scan-delay 1s --max-rtt-timeout 500ms -p {port} {target_ip} --script {','.join(base_scripts)} -oN /tmp/http_scan_port_{port}.txt"
+        
+        cmd = [
+            "sshpass", "-p", ZOMBIE_PASS,
+            "ssh",
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "ConnectTimeout=30",
+            f"{ZOMBIE_USER}@{ZOMBIE_IP}",
+            remote_command
+        ]
+        
+        scp_save = [
+            "sshpass", "-p", ZOMBIE_PASS,
+            "scp",
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "ConnectTimeout=30",
+            f"{ZOMBIE_USER}@{ZOMBIE_IP}:/tmp/http_scan_port_{port}.txt",
+            f"{ip_folder}/"
+        ]
+    else:
+        cmd = [
+            "nmap", "-p", port, target_ip,
+            "--script", ",".join(base_scripts),
+            "-oN", f"{ip_folder}/http_scan_port_{port}.txt"
+        ]
+        cmd = add_scan_options(cmd, is_ssh_mode=False)
+    
     execute_scan(cmd, "HTTP enumeration")
+    if os.environ.get('ZOMBIE') == 'enabled':
+        execute_scan(scp_save, "Copying HTTP scan results from zombie")
+    
+    if os.environ.get('ZOMBIE') == 'enabled':
+        # Wait a moment for the file to be written
+        import time
+        time.sleep(2)
+        execute_scan(scp_save, "Copying HTTP scan results from zombie")
 
 
 def run_https_scan(target_ip, port, ip_folder):
@@ -231,14 +317,49 @@ def run_https_scan(target_ip, port, ip_folder):
         "ssl-cert", "ssl-enum-ciphers", "http-enum", "http-headers",
         "http-methods", "http-title", "http-server-header"
     ]
+        
+    ZOMBIE_USER = os.environ.get("ZOMBIE_USER")
+    ZOMBIE_PASS = os.environ.get("ZOMBIE_PASS")
+    ZOMBIE_IP = os.environ.get("ZOMBIE_IP")
 
-    cmd = [
-        "nmap", "-p", port, target_ip,
-        "--script", ",".join(base_scripts),
-        "-oN", f"{ip_folder}/https_scan_port_{port}.txt"
-    ]
-    cmd = add_scan_options(cmd)
+    if os.environ.get('ZOMBIE') == 'enabled':
+        # Build the remote command with proper quoting
+        remote_command = f"cd /tmp && echo '{ZOMBIE_PASS}' | sudo -S nmap -T2 --scan-delay 1s --max-rtt-timeout 500ms -p {port} {target_ip} --script {','.join(base_scripts)} -oN /tmp/https_scan_port_{port}.txt"
+        
+        cmd = [
+            "sshpass", "-p", ZOMBIE_PASS,
+            "ssh",
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "ConnectTimeout=30",
+            f"{ZOMBIE_USER}@{ZOMBIE_IP}",
+            remote_command
+        ]
+        
+        scp_save = [
+            "sshpass", "-p", ZOMBIE_PASS,
+            "scp",
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "ConnectTimeout=30",
+            f"{ZOMBIE_USER}@{ZOMBIE_IP}:/tmp/https_scan_port_{port}.txt",
+            f"{ip_folder}/"
+        ]
+    else:
+        cmd = [
+            "nmap", "-p", port, target_ip,
+            "--script", ",".join(base_scripts),
+            "-oN", f"{ip_folder}/https_scan_port_{port}.txt"
+        ]
+        cmd = add_scan_options(cmd, is_ssh_mode=False)
+    
     execute_scan(cmd, "HTTPS and SSL scan")
+    if os.environ.get('ZOMBIE') == 'enabled':
+        execute_scan(scp_save, "Copying HTTPS scan results from zombie")
+    
+    if os.environ.get('ZOMBIE') == 'enabled':
+        # Wait a moment for the file to be written
+        import time
+        time.sleep(2)
+        execute_scan(scp_save, "Copying HTTPS scan results from zombie")
 
 
 def run_ftp_scan(target_ip, port, ip_folder):
@@ -246,14 +367,49 @@ def run_ftp_scan(target_ip, port, ip_folder):
     print(f" [FTP] Running stealthy FTP scans on port {port}")
 
     scripts = "ftp-anon,ftp-bounce,ftp-syst"
+    
+    ZOMBIE_USER = os.environ.get("ZOMBIE_USER")
+    ZOMBIE_PASS = os.environ.get("ZOMBIE_PASS")
+    ZOMBIE_IP = os.environ.get("ZOMBIE_IP")
 
-    cmd = [
-        "nmap", "-p", port, target_ip,
-        "--script", scripts,
-        "-oN", f"{ip_folder}/ftp_scan_port_{port}.txt"
-    ]
-    cmd = add_scan_options(cmd)
+    if os.environ.get('ZOMBIE') == 'enabled':
+        # Build the remote command with proper quoting
+        remote_command = f"cd /tmp && echo '{ZOMBIE_PASS}' | sudo -S nmap -T2 --scan-delay 1s --max-rtt-timeout 500ms -p {port} {target_ip} --script {scripts} -oN /tmp/ftp_scan_port_{port}.txt"
+        
+        cmd = [
+            "sshpass", "-p", ZOMBIE_PASS,
+            "ssh",
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "ConnectTimeout=30",
+            f"{ZOMBIE_USER}@{ZOMBIE_IP}",
+            remote_command
+        ]
+        
+        scp_save = [
+            "sshpass", "-p", ZOMBIE_PASS,
+            "scp",
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "ConnectTimeout=30",
+            f"{ZOMBIE_USER}@{ZOMBIE_IP}:/tmp/ftp_scan_port_{port}.txt",
+            f"{ip_folder}/"
+        ]
+    else:
+        cmd = [
+            "nmap", "-p", port, target_ip,
+            "--script", scripts,
+            "-oN", f"{ip_folder}/ftp_scan_port_{port}.txt"
+        ]
+        cmd = add_scan_options(cmd, is_ssh_mode=False)
+    
     execute_scan(cmd, "FTP security audit")
+    if os.environ.get('ZOMBIE') == 'enabled':
+        execute_scan(scp_save, "Copying FTP scan results from zombie")
+    
+    if os.environ.get('ZOMBIE') == 'enabled':
+        # Wait a moment for the file to be written
+        import time
+        time.sleep(2)
+        execute_scan(scp_save, "Copying FTP scan results from zombie")
 
 
 def run_smb_scan(target_ip, port, ip_folder):
@@ -261,14 +417,49 @@ def run_smb_scan(target_ip, port, ip_folder):
     print(f" [SMB] Running stealthy SMB scans on port {port}")
 
     scripts = "smb-enum-shares,smb-os-discovery,smb-security-mode"
+    
+    ZOMBIE_USER = os.environ.get("ZOMBIE_USER")
+    ZOMBIE_PASS = os.environ.get("ZOMBIE_PASS")
+    ZOMBIE_IP = os.environ.get("ZOMBIE_IP")
 
-    cmd = [
-        "nmap", "-p", port, target_ip,
-        "--script", scripts,
-        "-oN", f"{ip_folder}/smb_scan_port_{port}.txt"
-    ]
-    cmd = add_scan_options(cmd)
+    if os.environ.get('ZOMBIE') == 'enabled':
+        # Build the remote command with proper quoting
+        remote_command = f"cd /tmp && echo '{ZOMBIE_PASS}' | sudo -S nmap -T2 --scan-delay 1s --max-rtt-timeout 500ms -p {port} {target_ip} --script {scripts} -oN /tmp/smb_scan_port_{port}.txt"
+        
+        cmd = [
+            "sshpass", "-p", ZOMBIE_PASS,
+            "ssh",
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "ConnectTimeout=30",
+            f"{ZOMBIE_USER}@{ZOMBIE_IP}",
+            remote_command
+        ]
+        
+        scp_save = [
+            "sshpass", "-p", ZOMBIE_PASS,
+            "scp",
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "ConnectTimeout=30",
+            f"{ZOMBIE_USER}@{ZOMBIE_IP}:/tmp/smb_scan_port_{port}.txt",
+            f"{ip_folder}/"
+        ]
+    else:
+        cmd = [
+            "nmap", "-p", port, target_ip,
+            "--script", scripts,
+            "-oN", f"{ip_folder}/smb_scan_port_{port}.txt"
+        ]
+        cmd = add_scan_options(cmd, is_ssh_mode=False)
+    
     execute_scan(cmd, "SMB enumeration")
+    if os.environ.get('ZOMBIE') == 'enabled':
+        execute_scan(scp_save, "Copying SMB scan results from zombie")
+    
+    if os.environ.get('ZOMBIE') == 'enabled':
+        # Wait a moment for the file to be written
+        import time
+        time.sleep(2)
+        execute_scan(scp_save, "Copying SMB scan results from zombie")
 
 
 def run_mysql_scan(target_ip, port, ip_folder):
@@ -276,14 +467,49 @@ def run_mysql_scan(target_ip, port, ip_folder):
     print(f" [MySQL] Running stealthy MySQL scans on port {port}")
 
     scripts = "mysql-enum,mysql-info"
+    
+    ZOMBIE_USER = os.environ.get("ZOMBIE_USER")
+    ZOMBIE_PASS = os.environ.get("ZOMBIE_PASS")
+    ZOMBIE_IP = os.environ.get("ZOMBIE_IP")
 
-    cmd = [
-        "nmap", "-p", port, target_ip,
-        "--script", scripts,
-        "-oN", f"{ip_folder}/mysql_scan_port_{port}.txt"
-    ]
-    cmd = add_scan_options(cmd)
+    if os.environ.get('ZOMBIE') == 'enabled':
+        # Build the remote command with proper quoting
+        remote_command = f"cd /tmp && echo '{ZOMBIE_PASS}' | sudo -S nmap -T2 --scan-delay 1s --max-rtt-timeout 500ms -p {port} {target_ip} --script {scripts} -oN /tmp/mysql_scan_port_{port}.txt"
+        
+        cmd = [
+            "sshpass", "-p", ZOMBIE_PASS,
+            "ssh",
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "ConnectTimeout=30",
+            f"{ZOMBIE_USER}@{ZOMBIE_IP}",
+            remote_command
+        ]
+        
+        scp_save = [
+            "sshpass", "-p", ZOMBIE_PASS,
+            "scp",
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "ConnectTimeout=30",
+            f"{ZOMBIE_USER}@{ZOMBIE_IP}:/tmp/mysql_scan_port_{port}.txt",
+            f"{ip_folder}/"
+        ]
+    else:
+        cmd = [
+            "nmap", "-p", port, target_ip,
+            "--script", scripts,
+            "-oN", f"{ip_folder}/mysql_scan_port_{port}.txt"
+        ]
+        cmd = add_scan_options(cmd, is_ssh_mode=False)
+    
     execute_scan(cmd, "MySQL enumeration")
+    if os.environ.get('ZOMBIE') == 'enabled':
+        execute_scan(scp_save, "Copying MySQL scan results from zombie")
+
+    if os.environ.get('ZOMBIE') == 'enabled':
+        # Wait a moment for the file to be written
+        import time
+        time.sleep(2)
+        execute_scan(scp_save, "Copying MySQL scan results from zombie")
 
 
 def run_pgsql_scan(target_ip, port, ip_folder):
@@ -291,27 +517,99 @@ def run_pgsql_scan(target_ip, port, ip_folder):
     print(f" [PostgreSQL] Running stealthy PostgreSQL scans on port {port}")
 
     scripts = "pgsql-brute"
+    
+    ZOMBIE_USER = os.environ.get("ZOMBIE_USER")
+    ZOMBIE_PASS = os.environ.get("ZOMBIE_PASS")
+    ZOMBIE_IP = os.environ.get("ZOMBIE_IP")
 
-    cmd = [
-        "nmap", "-p", port, target_ip,
-        "--script", scripts,
-        "-oN", f"{ip_folder}/pgsql_scan_port_{port}.txt"
-    ]
-    cmd = add_scan_options(cmd)
+    if os.environ.get('ZOMBIE') == 'enabled':
+        # Build the remote command with proper quoting
+        remote_command = f"cd /tmp && echo '{ZOMBIE_PASS}' | sudo -S nmap -T2 --scan-delay 1s --max-rtt-timeout 500ms -p {port} {target_ip} --script {scripts} -oN /tmp/pgsql_scan_port_{port}.txt"
+        
+        cmd = [
+            "sshpass", "-p", ZOMBIE_PASS,
+            "ssh",
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "ConnectTimeout=30",
+            f"{ZOMBIE_USER}@{ZOMBIE_IP}",
+            remote_command
+        ]
+        
+        scp_save = [
+            "sshpass", "-p", ZOMBIE_PASS,
+            "scp",
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "ConnectTimeout=30",
+            f"{ZOMBIE_USER}@{ZOMBIE_IP}:/tmp/pgsql_scan_port_{port}.txt",
+            f"{ip_folder}/"
+        ]
+    else:
+        cmd = [
+            "nmap", "-p", port, target_ip,
+            "--script", scripts,
+            "-oN", f"{ip_folder}/pgsql_scan_port_{port}.txt"
+        ]
+        cmd = add_scan_options(cmd, is_ssh_mode=False)
+    
     execute_scan(cmd, "PostgreSQL scan")
+    if os.environ.get('ZOMBIE') == 'enabled':
+        execute_scan(scp_save, "Copying PostgreSQL scan results from zombie")
+    
+    if os.environ.get('ZOMBIE') == 'enabled':
+        # Wait a moment for the file to be written
+        import time
+        time.sleep(2)
+        execute_scan(scp_save, "Copying PostgreSQL scan results from zombie")
 
 
 def run_rdp_scan(target_ip, port, ip_folder):
     """Run RDP-specific security scans"""
     print(f" [RDP] Running stealthy RDP scans on port {port}")
 
-    cmd = [
-        "nmap", "-p", port, target_ip,
-        "--script", "rdp-enum-encryption,rdp-ntlm-info",
-        "-oN", f"{ip_folder}/rdp_scan_port_{port}.txt"
-    ]
-    cmd = add_scan_options(cmd)
+    scripts = "rdp-enum-encryption,rdp-ntlm-info"
+    
+    ZOMBIE_USER = os.environ.get("ZOMBIE_USER")
+    ZOMBIE_PASS = os.environ.get("ZOMBIE_PASS")
+    ZOMBIE_IP = os.environ.get("ZOMBIE_IP")
+
+    if os.environ.get('ZOMBIE') == 'enabled':
+        # Build the remote command with proper quoting
+        remote_command = f"cd /tmp && echo '{ZOMBIE_PASS}' | sudo -S nmap -T2 --scan-delay 1s --max-rtt-timeout 500ms -p {port} {target_ip} --script {scripts} -oN /tmp/rdp_scan_port_{port}.txt"
+        
+        cmd = [
+            "sshpass", "-p", ZOMBIE_PASS,
+            "ssh",
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "ConnectTimeout=30",
+            f"{ZOMBIE_USER}@{ZOMBIE_IP}",
+            remote_command
+        ]
+        
+        scp_save = [
+            "sshpass", "-p", ZOMBIE_PASS,
+            "scp",
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "ConnectTimeout=30",
+            f"{ZOMBIE_USER}@{ZOMBIE_IP}:/tmp/rdp_scan_port_{port}.txt",
+            f"{ip_folder}/"
+        ]
+    else:
+        cmd = [
+            "nmap", "-p", port, target_ip,
+            "--script", scripts,
+            "-oN", f"{ip_folder}/rdp_scan_port_{port}.txt"
+        ]
+        cmd = add_scan_options(cmd, is_ssh_mode=False)
+    
     execute_scan(cmd, "RDP security audit")
+    if os.environ.get('ZOMBIE') == 'enabled':
+        execute_scan(scp_save, "Copying RDP scan results from zombie")
+    
+    if os.environ.get('ZOMBIE') == 'enabled':
+        # Wait a moment for the file to be written
+        import time
+        time.sleep(2)
+        execute_scan(scp_save, "Copying RDP scan results from zombie")
 
 
 def run_vnc_scan(target_ip, port, ip_folder):
@@ -319,61 +617,143 @@ def run_vnc_scan(target_ip, port, ip_folder):
     print(f" [VNC] Running stealthy VNC scans on port {port}")
 
     scripts = "vnc-info"
+    
+    ZOMBIE_USER = os.environ.get("ZOMBIE_USER")
+    ZOMBIE_PASS = os.environ.get("ZOMBIE_PASS")
+    ZOMBIE_IP = os.environ.get("ZOMBIE_IP")
 
-    cmd = [
-        "nmap", "-p", port, target_ip,
-        "--script", scripts,
-        "-oN", f"{ip_folder}/vnc_scan_port_{port}.txt"
-    ]
-    cmd = add_scan_options(cmd)
+    if os.environ.get('ZOMBIE') == 'enabled':
+        # Build the remote command with proper quoting
+        remote_command = f"cd /tmp && echo '{ZOMBIE_PASS}' | sudo -S nmap -T2 --scan-delay 1s --max-rtt-timeout 500ms -p {port} {target_ip} --script {scripts} -oN /tmp/vnc_scan_port_{port}.txt"
+        
+        cmd = [
+            "sshpass", "-p", ZOMBIE_PASS,
+            "ssh",
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "ConnectTimeout=30",
+            f"{ZOMBIE_USER}@{ZOMBIE_IP}",
+            remote_command
+        ]
+        
+        scp_save = [
+            "sshpass", "-p", ZOMBIE_PASS,
+            "scp",
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "ConnectTimeout=30",
+            f"{ZOMBIE_USER}@{ZOMBIE_IP}:/tmp/vnc_scan_port_{port}.txt",
+            f"{ip_folder}/"
+        ]
+    else:
+        cmd = [
+            "nmap", "-p", port, target_ip,
+            "--script", scripts,
+            "-oN", f"{ip_folder}/vnc_scan_port_{port}.txt"
+        ]
+        cmd = add_scan_options(cmd, is_ssh_mode=False)
+    
     execute_scan(cmd, "VNC security audit")
+    if os.environ.get('ZOMBIE') == 'enabled':
+        execute_scan(scp_save, "Copying VNC scan results from zombie")
+    
+    if os.environ.get('ZOMBIE') == 'enabled':
+        # Wait a moment for the file to be written
+        import time
+        time.sleep(2)
+        execute_scan(scp_save, "Copying VNC scan results from zombie")
 
 
 def run_generic_scan(target_ip, port, service_name, ip_folder):
     """Run generic service version detection"""
     print(f" [*] Running stealthy generic scan for {service_name} on port {port}")
 
-    cmd = [
-        "nmap", "-p", port, target_ip,
-        "-sV", "--version-intensity", "2",
-        "-oN", f"{ip_folder}/generic_scan_{service_name}_port_{port}.txt"
-    ]
+    ZOMBIE_USER = os.environ.get("ZOMBIE_USER")
+    ZOMBIE_PASS = os.environ.get("ZOMBIE_PASS")
+    ZOMBIE_IP = os.environ.get("ZOMBIE_IP")
 
-    cmd = add_scan_options(cmd)
+    if os.environ.get('ZOMBIE') == 'enabled':
+        # Sanitize service name for filename
+        safe_service_name = service_name.replace('/', '_').replace('\\', '_')
+        
+        # Build the remote command with proper quoting
+        remote_command = f"cd /tmp && echo '{ZOMBIE_PASS}' | sudo -S nmap -T2 --scan-delay 1s --max-rtt-timeout 500ms -p {port} {target_ip} -sV --version-intensity 2 -oN /tmp/generic_scan_{safe_service_name}_port_{port}.txt"
+        
+        cmd = [
+            "sshpass", "-p", ZOMBIE_PASS,
+            "ssh",
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "ConnectTimeout=30",
+            f"{ZOMBIE_USER}@{ZOMBIE_IP}",
+            remote_command
+        ]
+        
+        scp_save = [
+            "sshpass", "-p", ZOMBIE_PASS,
+            "scp",
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "ConnectTimeout=30",
+            f"{ZOMBIE_USER}@{ZOMBIE_IP}:/tmp/generic_scan_{safe_service_name}_port_{port}.txt",
+            f"{ip_folder}/"
+        ]
+    else:
+        cmd = [
+            "nmap", "-p", port, target_ip,
+            "-sV", "--version-intensity", "2",
+            "-oN", f"{ip_folder}/generic_scan_{service_name}_port_{port}.txt"
+        ]
+        cmd = add_scan_options(cmd, is_ssh_mode=False)
+    
     execute_scan(cmd, f"generic {service_name} scan")
+
+    if os.environ.get('ZOMBIE') == 'enabled':
+        execute_scan(scp_save, "Copying generic scan results from zombie")
+    
+    if os.environ.get('ZOMBIE') == 'enabled':
+        # Wait a moment for the file to be written
+        import time
+        time.sleep(2)
+        execute_scan(scp_save, f"Copying generic scan results for {service_name} from zombie")
 
 
 def execute_scan(cmd, scan_type_desc):
     """Execute a scan command with error handling, optionally through a zombie host"""
     print(f" [*] Running {scan_type_desc}: {' '.join(cmd)}")
 
-    # Check if zombie mode is enabled
-    if os.environ.get('ZOMBIE') == 'enabled':
-        # Get zombie credentials from environment variables
-        ZOMBIE_USER = os.environ.get("ZOMBIE_USER", "")
-        ZOMBIE_PASS = os.environ.get("ZOMBIE_PASS", "")
-        ZOMBIE_IP = os.environ.get("ZOMBIE_IP", "")
+    # # Check if zombie mode is enabled
+    # if os.environ.get('ZOMBIE') == 'enabled':
+    #     # Get zombie credentials from environment variables
+    #     ZOMBIE_USER = os.environ.get("ZOMBIE_USER")
+    #     ZOMBIE_PASS = os.environ.get("ZOMBIE_PASS")
+    #     ZOMBIE_IP = os.environ.get("ZOMBIE_IP")
 
-        # Create the SSH wrapper command
-        original_cmd_str = ' '.join(cmd)
-        ssh_wrapper = [
-            "sshpass", "-p", ZOMBIE_PASS,
-            "ssh",
-            "-o", "StrictHostKeyChecking=no",
-            "-tt",
-            f"{ZOMBIE_USER}@{ZOMBIE_IP}",
-            f"echo '{ZOMBIE_PASS}' | sudo -S {original_cmd_str}"
-        ]
-        scp_save = [
-            "sshpass", "-p", ZOMBIE_PASS,
-            "scp",
-            "-o", "StrictHostKeyChecking=no",
-            f"{ZOMBIE_USER}@{ZOMBIE_IP}:/tmp/{ip_folder}",
-            f"{ip_folder}/"
-        ]
-        # Use the SSH wrapper instead of the original command
-        cmd = ssh_wrapper
-        print(f" [*] Running through zombie host {ZOMBIE_IP} as {ZOMBIE_USER}")
+    #     fname = os.environ.get("FNAME")
+    #     if fname:
+    #         folder_name = fname
+    #     else:
+    #         # Create a safe folder name from the IP/CIDR
+    #         safe_name = ip.replace('/', '_')
+    #         folder_name = f"{safe_name}_results"
+
+    #     # Create the SSH wrapper command
+    #     original_cmd_str = ' '.join(cmd)
+    #     ssh_wrapper = [
+    #         "sshpass", "-p", ZOMBIE_PASS,
+    #         "ssh",
+    #         "-o", "StrictHostKeyChecking=no",
+    #         "-tt",
+    #         f"{ZOMBIE_USER}@{ZOMBIE_IP}",
+    #         f"echo {ZOMBIE_PASS} | sudo -S {original_cmd_str}"
+    #     ]
+    #     scp_save = [
+    #         "sshpass", "-p", ZOMBIE_PASS,
+    #         "scp",
+    #         "-o", "StrictHostKeyChecking=no",
+    #         f"{ZOMBIE_USER}@{ZOMBIE_IP}:/tmp/{folder_name}",
+    #         f"{folder_name}/"
+    #     ]
+    #     # Use the SSH wrapper instead of the original command
+    #     cmd = ssh_wrapper
+    #     print(f" [*] Running cmd: {cmd}")
+    #     print(f" [*] Running through zombie host {ZOMBIE_IP} as {ZOMBIE_USER}")
     
     # Adjust timeout based on scan type
     timeout = 600 if "stealthy" in scan_type_desc.lower() else 300
@@ -382,7 +762,7 @@ def execute_scan(cmd, scan_type_desc):
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
         if result.returncode == 0:
             print(f" [*] {scan_type_desc} completed successfully")
-            if os.environ['ZOMBBIE'] == 'enabled':
+            if os.environ.get('ZOMBIE') == 'enabled':
                 print(f" [*] Retrieving results from zombie host...")
                 subprocess.run(scp_save, capture_output=True, text=True, timeout=timeout)
         else:
