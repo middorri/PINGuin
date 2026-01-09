@@ -5,6 +5,7 @@ Main entry point that coordinates all reconnaissance modules
 Features a pinned banner that stays visible during menu navigation
 """
 
+import argparse
 import os
 import sys
 import subprocess
@@ -78,6 +79,15 @@ def use_case():
 def main():
     """Main function - provides menu interface with pinned banner"""
     banner()
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("-c", "--config", help="Path to configuration file", type=str)
+    args = parser.parse_args()
+
+    if args.config:
+        config_loader.load_config(args.config)
+
     cmd = ""
     while cmd != "exit":
         
@@ -178,8 +188,10 @@ def main():
                     if zombie_args[0] == "config":
                         if len(zombie_args) >= 2:
                             config_path = zombie_args[1]
+                            os.environ['ZOMBIE'] = "enabled"
                         else:
                             config_path = input(" [?] Enter zombie config file path: ")
+                            os.environ['ZOMBIE'] = "enabled"
                         config_loader.load_zombie_config(config_path)
                         continue
                     # set zombie user
@@ -187,18 +199,21 @@ def main():
                         os.environ['USERNAME'] = zombie_args[0]
                         os.environ['PASSWORD'] = input(" [?] Enter zombie password: ")
                         os.environ['ZOMBIE_IP'] = input(" [?] Enter zombie IP address: ")
+                        os.environ['ZOMBIE'] = "enabled"
                         continue
                     # set zombie user pass
                     if len(zombie_args) == 2:
                         os.environ['USERNAME'] = zombie_args[0]
                         os.environ['PASSWORD'] = zombie_args[1]
                         os.environ['ZOMBIE_IP'] = input(" [?] Enter zombie IP address: ")
+                        os.environ['ZOMBIE'] = "enabled"
                         continue
                     # set zombie user pass ip
                     if len(zombie_args) == 3:
                         os.environ['USERNAME'] = zombie_args[0]
                         os.environ['PASSWORD'] = zombie_args[1]
                         os.environ['ZOMBIE_IP'] = zombie_args[2]
+                        os.environ['ZOMBIE'] = "enabled"
                         continue
                     print("[-] Invalid zombie syntax")
 

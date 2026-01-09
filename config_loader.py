@@ -44,6 +44,7 @@ def load_config(config_path):
                         print(f" [+] Results folder set: {value}")
                     elif key == 'ZOMBIE_IP':
                         os.environ['ZOMBIE_IP'] = value
+                        os.environ['ZOMBIE'] = "enabled"
                         print(f" [+] Zombie IP set: {value}")
                     elif key == 'ZOMBIE_USER':
                         os.environ['USERNAME'] = value

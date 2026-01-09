@@ -717,43 +717,6 @@ def run_generic_scan(target_ip, port, service_name, ip_folder):
 def execute_scan(cmd, scan_type_desc):
     """Execute a scan command with error handling, optionally through a zombie host"""
     print(f" [*] Running {scan_type_desc}: {' '.join(cmd)}")
-
-    # # Check if zombie mode is enabled
-    # if os.environ.get('ZOMBIE') == 'enabled':
-    #     # Get zombie credentials from environment variables
-    #     ZOMBIE_USER = os.environ.get("ZOMBIE_USER")
-    #     ZOMBIE_PASS = os.environ.get("ZOMBIE_PASS")
-    #     ZOMBIE_IP = os.environ.get("ZOMBIE_IP")
-
-    #     fname = os.environ.get("FNAME")
-    #     if fname:
-    #         folder_name = fname
-    #     else:
-    #         # Create a safe folder name from the IP/CIDR
-    #         safe_name = ip.replace('/', '_')
-    #         folder_name = f"{safe_name}_results"
-
-    #     # Create the SSH wrapper command
-    #     original_cmd_str = ' '.join(cmd)
-    #     ssh_wrapper = [
-    #         "sshpass", "-p", ZOMBIE_PASS,
-    #         "ssh",
-    #         "-o", "StrictHostKeyChecking=no",
-    #         "-tt",
-    #         f"{ZOMBIE_USER}@{ZOMBIE_IP}",
-    #         f"echo {ZOMBIE_PASS} | sudo -S {original_cmd_str}"
-    #     ]
-    #     scp_save = [
-    #         "sshpass", "-p", ZOMBIE_PASS,
-    #         "scp",
-    #         "-o", "StrictHostKeyChecking=no",
-    #         f"{ZOMBIE_USER}@{ZOMBIE_IP}:/tmp/{folder_name}",
-    #         f"{folder_name}/"
-    #     ]
-    #     # Use the SSH wrapper instead of the original command
-    #     cmd = ssh_wrapper
-    #     print(f" [*] Running cmd: {cmd}")
-    #     print(f" [*] Running through zombie host {ZOMBIE_IP} as {ZOMBIE_USER}")
     
     # Adjust timeout based on scan type
     timeout = 600 if "stealthy" in scan_type_desc.lower() else 300
