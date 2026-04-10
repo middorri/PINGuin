@@ -21,7 +21,7 @@ Automated reconnaissance tool for network scanning and enumeration.\
 ## Installation
 
 ```bash
-git clone https://github.com/yourusername/pinguin.git
+git clone https://github.com/middorri/pinguin.git
 cd pinguin
 
 Usage
