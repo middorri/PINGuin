@@ -524,7 +524,7 @@ def run_pgsql_scan(target_ip, port, ip_folder):
 
     if os.environ.get('ZOMBIE') == 'enabled':
         # Build the remote command with proper quoting
-        remote_command = f"cd /tmp && echo '{ZOMBIE_PASS}' | sudo -S nmap -T2 --scan-delay 1s --max-rtt-timeout 500ms -p {port} {target_ip} --script {scripts} -oN /tmp/pgsql_scan_port_{port}.txt"
+        remote_command = f"cd /tmp && echo '{ZOMBIE_PASS}' | sudo -S nmap -T1 --scan-delay 1s --max-rtt-timeout 500ms -p {port} {target_ip} --script {scripts} -oN /tmp/pgsql_scan_port_{port}.txt"
         
         cmd = [
             "sshpass", "-p", ZOMBIE_PASS,
@@ -574,7 +574,7 @@ def run_rdp_scan(target_ip, port, ip_folder):
 
     if os.environ.get('ZOMBIE') == 'enabled':
         # Build the remote command with proper quoting
-        remote_command = f"cd /tmp && echo '{ZOMBIE_PASS}' | sudo -S nmap -T2 --scan-delay 1s --max-rtt-timeout 500ms -p {port} {target_ip} --script {scripts} -oN /tmp/rdp_scan_port_{port}.txt"
+        remote_command = f"cd /tmp && echo '{ZOMBIE_PASS}' | sudo -S nmap -T1 --scan-delay 1s --max-rtt-timeout 500ms -p {port} {target_ip} --script {scripts} -oN /tmp/rdp_scan_port_{port}.txt"
         
         cmd = [
             "sshpass", "-p", ZOMBIE_PASS,
@@ -624,7 +624,7 @@ def run_vnc_scan(target_ip, port, ip_folder):
 
     if os.environ.get('ZOMBIE') == 'enabled':
         # Build the remote command with proper quoting
-        remote_command = f"cd /tmp && echo '{ZOMBIE_PASS}' | sudo -S nmap -T2 --scan-delay 1s --max-rtt-timeout 500ms -p {port} {target_ip} --script {scripts} -oN /tmp/vnc_scan_port_{port}.txt"
+        remote_command = f"cd /tmp && echo '{ZOMBIE_PASS}' | sudo -S nmap -T1 --scan-delay 1s --max-rtt-timeout 500ms -p {port} {target_ip} --script {scripts} -oN /tmp/vnc_scan_port_{port}.txt"
         
         cmd = [
             "sshpass", "-p", ZOMBIE_PASS,
@@ -675,7 +675,7 @@ def run_generic_scan(target_ip, port, service_name, ip_folder):
         safe_service_name = service_name.replace('/', '_').replace('\\', '_')
         
         # Build the remote command with proper quoting
-        remote_command = f"cd /tmp && echo '{ZOMBIE_PASS}' | sudo -S nmap -T2 --scan-delay 1s --max-rtt-timeout 500ms -p {port} {target_ip} -sV --version-intensity 2 -oN /tmp/generic_scan_{safe_service_name}_port_{port}.txt"
+        remote_command = f"cd /tmp && echo '{ZOMBIE_PASS}' | sudo -S nmap -T1 --scan-delay 1s --max-rtt-timeout 500ms -p {port} {target_ip} -sV --version-intensity 1 -oN /tmp/generic_scan_{safe_service_name}_port_{port}.txt"
         
         cmd = [
             "sshpass", "-p", ZOMBIE_PASS,
@@ -697,7 +697,7 @@ def run_generic_scan(target_ip, port, service_name, ip_folder):
     else:
         cmd = [
             "nmap", "-p", port, target_ip,
-            "-sV", "--version-intensity", "2",
+            "-sV", "--version-intensity", "1",
             "-oN", f"{ip_folder}/generic_scan_{service_name}_port_{port}.txt"
         ]
         cmd = add_scan_options(cmd, is_ssh_mode=False)

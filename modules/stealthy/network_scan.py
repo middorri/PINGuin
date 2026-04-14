@@ -12,6 +12,7 @@ from pathlib import Path
 import sys
 import ipaddress
 import tempfile
+import random
 
 def is_cidr_range(ip):
     """Check if the target is a CIDR range (like /24)"""
@@ -149,6 +150,10 @@ def run_scan_chain(ip, folder_name):
     safe_ip = ip.replace('/', '_')
     ip_folder = Path(folder_name) / safe_ip
     ip_folder.mkdir(parents=True, exist_ok=True)
+
+    delay = random.randint(1, 10)
+    data = random.randint(0, 100)
+    rate = random.randint(1, 15)
     
     base = f"{ip_folder}"
 
@@ -167,13 +172,13 @@ def run_scan_chain(ip, folder_name):
             "-o", "StrictHostKeyChecking=no",
             "-tt",
             f"{ZOMBIE_USER}@{ZOMBIE_IP}", "cd /tmp &&",
-            f"echo '{ZOMBIE_PASS}' | sudo -S nmap -sS -p- -T2 "
+            f"echo '{ZOMBIE_PASS}' | sudo -S nmap -sS -p- -T1 "
             "--host-timeout 0 "
-            "--max-rate 100 "
-            "--scan-delay 500ms "
+            f"--max-rate {rate} "
+            f"--scan-delay {delay}s "
             "--max-retries 3 "
             "-f "
-            "--data-length 24 "
+            f"--data-length {data} "
             "--source-port 53 "
             "-PS21,22,23,25,53,80,110,143,443,993,995 "
             "-PA21,22,23,25,53,80,110,143,443,993,995 "
@@ -189,8 +194,8 @@ def run_scan_chain(ip, folder_name):
         ]
     else:
         scan1_cmd = [
-            "nmap", "-sS", "-p-", "-T2", "--host-timeout", "0", "--max-rate", "100", "--scan-delay", "500ms", 
-            "--max-retries", "3", "-f", "--data-length", "24", "--source-port", "53",
+            "nmap", "-sS", "-p-", "-T1", "--host-timeout", "0", "--max-rate", f"{rate}", "--scan-delay", f"{delay}s",
+            "--max-retries", "3", "-f", "--data-length", f"{data}", "--source-port", "53",
             "-PS21,22,23,25,53,80,110,143,443,993,995", 
             "-PA21,22,23,25,53,80,110,143,443,993,995",
             "-oA", f"{base}_tcp_syn_all", ip
@@ -198,6 +203,11 @@ def run_scan_chain(ip, folder_name):
     
     # Command 2: TCP Service Detection (will be built after scan1)
     # Command 3: UDP Discovery (Common Services)
+
+    delay = random.randint(1, 10)
+    data = random.randint(0, 100)
+    rate = random.randint(1, 15)
+
     if os.environ.get('ZOMBIE') == 'enabled':
         scan3_cmd = [
             "sshpass", "-p", ZOMBIE_PASS,
@@ -206,8 +216,8 @@ def run_scan_chain(ip, folder_name):
             "-tt",
             f"{ZOMBIE_USER}@{ZOMBIE_IP}", "cd /tmp &&",
             f"echo '{ZOMBIE_PASS}' | sudo -S nmap -sU -T1 "
-            "--max-rate 10 "
-            "--scan-delay 2s "
+            f"--max-rate {rate} "
+            f"--scan-delay {delay}s "
             "-p 53,67,68,69,123,135,137,138,139,161,162,445,500,514,631,1434,1701,1900,1812,1813,4500,5353,11211,27015,47808,49152 "
             f"-oA {base}_udp_key_ports "
             f"{ip}"
@@ -222,8 +232,8 @@ def run_scan_chain(ip, folder_name):
     else:
         scan3_cmd = [
             "nmap", "-sU", "-T1",
-            "--max-rate", "10",
-            "--scan-delay", "2s",
+            "--max-rate", f"{rate}",
+            "--scan-delay", f"{delay}s",
             "-p", "53,67,68,69,123,135,137,138,139,161,162,445,500,514,631,1434,1701,1900,1812,1813,4500,5353,11211,27015,47808,49152",
             "-oA", f"{base}_udp_key_ports",
             ip
@@ -280,6 +290,11 @@ def run_scan_chain(ip, folder_name):
     tcp_open_ports = get_open_ports_from_xml(tcp_xml, "tcp")
     
     # Command 2: TCP Service Detection (only if we found open ports)
+
+    delay = random.randint(1, 10)
+    data = random.randint(0, 100)
+    rate = random.randint(1, 15)
+
     if tcp_open_ports:
         ports_str = ",".join(map(str, tcp_open_ports))
         if os.environ.get('ZOMBIE') == 'enabled':
@@ -290,12 +305,12 @@ def run_scan_chain(ip, folder_name):
                 "-tt",
                 f"{ZOMBIE_USER}@{ZOMBIE_IP}", "cd /tmp &&",
                 f"echo '{ZOMBIE_PASS}' | sudo -S nmap -sS -T1 "
-                "--max-rate 50 "
-                "--scan-delay 1s "
+                f"--max-rate {rate} "
+                f"--scan-delay {delay}s "
                 "-sV "
                 "--version-intensity 5 "
                 "-f "
-                "--data-length 24 "
+                f"--data-length {data} "
                 f"-p {ports_str} "
                 f"-oA /tmp/scan_tcp_service_versions "
                 f"{ip}"
@@ -309,8 +324,8 @@ def run_scan_chain(ip, folder_name):
             ]
         else:
             scan2_cmd = [
-                "nmap", "-sS", "-T1", "--max-rate", "50", "--scan-delay", "1s",
-                "-sV", "--version-intensity", "5", "-f", "--data-length", "24",
+                "nmap", "-sS", "-T1", "--max-rate", f"{rate}", "--scan-delay", f"{delay}s",
+                "-sV", "--version-intensity", "5", "-f", "--data-length", f"{data}",
                 "-p", ports_str, "-oA", f"{base}_tcp_service_versions", ip
             ]
         
@@ -344,6 +359,11 @@ def run_scan_chain(ip, folder_name):
     udp_open_ports = get_open_ports_from_xml(udp_xml, "udp")
     
     # Command 4: UDP Service Detection (only if we found open ports)
+
+    delay = random.randint(1, 10)
+    data = random.randint(0, 100)
+    rate = random.randint(1, 15)
+
     if udp_open_ports:
         ports_str = ",".join(map(str, udp_open_ports))
         if os.environ.get('ZOMBIE') == 'enabled':
@@ -354,10 +374,10 @@ def run_scan_chain(ip, folder_name):
                 "-tt",
                 f"{ZOMBIE_USER}@{ZOMBIE_IP}", "cd /tmp &&",
                 f"echo '{ZOMBIE_PASS}' | sudo -S nmap -sU -T0 "
-                "--max-rate 5 "
-                "--scan-delay 3s "
+                f"--max-rate {rate} "
+                f"--scan-delay {delay}s "
                 "-sV "
-                "--version-intensity 3 "
+                "--version-intensity 1 "
                 "-sC "
                 f"-p {ports_str} "
                 f"-oA /tmp/scan_udp_service_versions "
@@ -372,8 +392,8 @@ def run_scan_chain(ip, folder_name):
             ]
         else:
             scan4_cmd = [
-                "nmap", "-sU", "-T0", "--max-rate", "5", "--scan-delay", "3s",
-                "-sV", "--version-intensity", "3", "-sC", "-p", ports_str,
+                "nmap", "-sU", "-T0", "--max-rate", f"{rate}", "--scan-delay", f"{delay}s",
+                "-sV", "--version-intensity", "1", "-sC", "-p", ports_str,
                 "-oA", f"{base}_udp_service_versions", ip
             ]
         
