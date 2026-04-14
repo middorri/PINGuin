@@ -19,13 +19,13 @@ Automated reconnaissance tool for network scanning and enumeration.\
 - sudo privileges (for some scan types)
 
 ## Installation
-
 ```bash
-git clone https://github.com/middorri/pinguin.git
+
+git clone https://github.com/middorri/PINGuin
 cd pinguin
-
-Usage
-
+```
+## Usage
+```bash
 Run the main interface:
 bash
 
