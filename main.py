@@ -238,11 +238,11 @@ def main():
                     user = os.environ.get('USERNAME')
                     password = os.environ.get('PASSWORD')
                     print(" [*] Checking zombie readiness...")
-                    ret = check_zombie_ready(zombie_ip, user, password)
-                    if ret == 0:
+                    ready = check_zombie_ready(zombie_ip, user, password)
+                    if ready == 0:
                         print(" [+] Zombie is ready for use.")
                     else:
-                        print(f" [!] Zombie check failed with code {ret}.")
+                        print(f" [!] Zombie check failed with code {ready}.")
                 else:
                     print(" [!] Zombie configuration is not set.")
 
