@@ -13,6 +13,18 @@ import sys
 import ipaddress
 import tempfile
 import random
+import requests
+
+def shodan_scan():
+    """Perform a quick Shodan scan to gather basic info about the target IP"""
+    ip = os.environ.get("IP")
+    if not ip:
+        print(" [!] IP environment variable not set")
+        return None
+    host = requests.get(f"https://internetdb.shodan.io/{ip}").json()
+    OPEN_PORTS = host.get("ports", [])
+    return OPEN_PORTS
+
 
 def is_cidr_range(ip):
     """Check if the target is a CIDR range (like /24)"""
@@ -166,13 +178,14 @@ def run_scan_chain(ip, folder_name):
 
     # Command 1: Initial TCP SYN Discovery
     if os.environ.get('ZOMBIE') == 'enabled':
+        open_ports = shodan_scan()
         scan1_cmd = [
             "sshpass", "-p", ZOMBIE_PASS,
             "ssh",
             "-o", "StrictHostKeyChecking=no",
             "-tt",
             f"{ZOMBIE_USER}@{ZOMBIE_IP}", "cd /tmp &&",
-            f"echo '{ZOMBIE_PASS}' | sudo -S nmap -sS -p- -T1 "
+            f"echo '{ZOMBIE_PASS}' | sudo -S nmap -sS -p {open_ports} -T1 "
             "--host-timeout 0 "
             f"--max-rate {rate} "
             f"--scan-delay {delay}s "
@@ -193,8 +206,9 @@ def run_scan_chain(ip, folder_name):
             f"{base}/"
         ]
     else:
+        open_ports = shodan_scan()
         scan1_cmd = [
-            "nmap", "-sS", "-p-", "-T1", "--host-timeout", "0", "--max-rate", f"{rate}", "--scan-delay", f"{delay}s",
+            "nmap", "-sS", f"-p {open_ports}", "-T1", "--host-timeout", "0", "--max-rate", f"{rate}", "--scan-delay", f"{delay}s",
             "--max-retries", "3", "-f", "--data-length", f"{data}", "--source-port", "53",
             "-PS21,22,23,25,53,80,110,143,443,993,995", 
             "-PA21,22,23,25,53,80,110,143,443,993,995",
