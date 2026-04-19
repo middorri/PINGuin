@@ -14,20 +14,18 @@ import config_loader
 def banner():
     """Display the PINGuin banner"""
     os.system('clear')
-    print("")
-    print("")
-    print("    ██▓███   ██▓ ███▄    █   ▄████  █    ██  ██▓ ███▄    █ ")
-    print("   ▓██░  ██▒▓██▒ ██ ▀█   █  ██▒ ▀█▒ ██  ▓██▒▓██▒ ██ ▀█   █ ")
-    print("   ▓██░ ██▓▒▒██▒▓██  ▀█ ██▒▒██░▄▄▄░▓██  ▒██░▒██▒▓██  ▀█ ██▒")
-    print("   ▒██▄█▓▒ ▒░██░▓██▒  ▐▌██▒░▓█  ██▓▓▓█  ░██░░██░▓██▒  ▐▌██▒")
-    print("   ▒██▒ ░  ░░██░▒██░   ▓██░░▒▓███▀▒▒▒█████▓ ░██░▒██░   ▓██░")
-    print("   ▒▓▒░ ░  ░░▓  ░ ▒░   ▒ ▒  ░▒   ▒ ░▒▓▒ ▒ ▒ ░▓  ░ ▒░   ▒ ▒ ")
-    print("   ░▒ ░      ▒ ░░ ░░   ░ ▒░  ░   ░ ░░▒░ ░ ░  ▒ ░░ ░░   ░ ▒░")
-    print("   ░░        ▒ ░   ░   ░ ░ ░ ░   ░  ░░░ ░ ░  ▒ ░   ░   ░ ░ ")
-    print("             ░           ░       ░    ░      ░           ░ ")
-    print("   PINGuin - Automated Recon Tool")
-    print("")
-
+    print("""
+    ██▓███   ██▓ ███▄    █   ▄████  █    ██  ██▓ ███▄    █ 
+   ▓██░  ██▒▓██▒ ██ ▀█   █  ██▒ ▀█▒ ██  ▓██▒▓██▒ ██ ▀█   █ 
+   ▓██░ ██▓▒▒██▒▓██  ▀█ ██▒▒██░▄▄▄░▓██  ▒██░▒██▒▓██  ▀█ ██▒
+   ▒██▄█▓▒ ▒░██░▓██▒  ▐▌██▒░▓█  ██▓▓▓█  ░██░░██░▓██▒  ▐▌██▒
+   ▒██▒ ░  ░░██░▒██░   ▓██░░▒▓███▀▒▒▒█████▓ ░██░▒██░   ▓██░
+   ▒▓▒░ ░  ░░▓  ░ ▒░   ▒ ▒  ░▒   ▒ ░▒▓▒ ▒ ▒ ░▓  ░ ▒░   ▒ ▒ 
+   ░▒ ░      ▒ ░░ ░░   ░ ▒░  ░   ░ ░░▒░ ░ ░  ▒ ░░ ░░   ░ ▒░
+   ░░        ▒ ░   ░   ░ ░ ░ ░   ░  ░░░ ░ ░  ▒ ░   ░   ░ ░ 
+             ░           ░       ░    ░      ░           ░ 
+   PINGuin - Automated Recon Tool
+    """)
 
 def check_zombie_ready(zombie_ip, user, password):
     ssh_cmd = (
@@ -38,27 +36,15 @@ def check_zombie_ready(zombie_ip, user, password):
         "-tt {user}@{ip} "
         "\""
         "set -e; "
-
-        # 1. Home directory exists
         "[ -d /home/{user} ] || exit 10; "
-
-        # 2. Ensure ownership (requires sudo)
         "sudo -S chown -R {user}:{user} /home/{user} <<< {pw} || exit 11; "
         "sudo -S chmod 700 /home/{user} <<< {pw} || exit 12; "
-
-        # 3. Can enter home
         "cd /home/{user} || exit 13; "
-
-        # 4. Sudo usable
         "sudo -S true <<< {pw} || exit 14; "
-
-        # 5. Nmap installed
         "command -v nmap >/dev/null 2>&1 || exit 15; "
-
         "exit 0"
         "\""
     ).format(user=user, ip=zombie_ip, pw=password)
-
     return subprocess.call(ssh_cmd, shell=True)
 
 def use_case():
@@ -77,38 +63,34 @@ def use_case():
         return "modules/" + choice
 
 def main():
-    """Main function - provides menu interface with pinned banner"""
     banner()
-
     parser = argparse.ArgumentParser()
-
     parser.add_argument("-c", "--config", help="Path to configuration file", type=str)
     args = parser.parse_args()
-
     if args.config:
         config_loader.load_config(args.config)
 
     cmd = ""
     while cmd != "exit":
-        
         cmd = input(" $ ")
 
         if cmd == "help":
             print(" Available commands:")
-            print("   help       - Show this help message")
-            print("   scan <ip>  - Run network scan module")
-            print("   enum <ip>  - Run enumeration module")
-            print("   full <ip>  - Run full reconnaissance module")
-            print("   status     - Show current configuration status")
-            print("   clear      - Clear the terminal screen")
-            print("   exit       - Exit the tool")
-
+            print("   help         - Show this help message")
+            print("   scan <ip>    - Run network scan module")
+            print("   enum <ip>    - Run enumeration module")
+            print("   full <ip>    - Run full reconnaissance module")
+            print("   status       - Show current configuration status")
+            print("   clear        - Clear the terminal screen")
+            print("   exit         - Exit the tool")
             print("\n Configuration attributes:")
-            print("   ip         - Set target IP address")
-            print("   stype      - Set type of scan (stealthy/aggressive)")
-            print("   fname      - Set folder name for results")
-            print("   config     - Set configuration file path")
-            print("   zombie     - Set zombie configuration file path/ USR/PASS/IP")
+            print("   ip           - Set target IP address")
+            print("   stype        - Set type of scan (stealthy/aggressive)")
+            print("   fname        - Set folder name for results")
+            print("   config       - Set configuration file path")
+            print("   zombie       - Set zombie configuration file path/ USR/PASS/IP")
+            print("   service_scan - Enable/disable service version scanning (true/false)")
+            print("   host_check   - Enable/disable host up check (true/false, default: true)")
             print("\n Usage: set <attribute> <value>")
         
         elif cmd.startswith("scan"):
@@ -180,11 +162,10 @@ def main():
                 
                 elif attr == "zombie":
                     os.environ['ZOMBIE'] = "enabled"
-                    zombie_args = parts[2:]  # everything after "set zombie"
+                    zombie_args = parts[2:]
                     if not zombie_args:
                         print("[-] Usage: set zombie <config|user> [pass] [ip]")
                         continue
-                    # set zombie config [path]
                     if zombie_args[0] == "config":
                         if len(zombie_args) >= 2:
                             config_path = zombie_args[1]
@@ -194,21 +175,18 @@ def main():
                             os.environ['ZOMBIE'] = "enabled"
                         config_loader.load_zombie_config(config_path)
                         continue
-                    # set zombie user
                     if len(zombie_args) == 1:
                         os.environ['USERNAME'] = zombie_args[0]
                         os.environ['PASSWORD'] = input(" [?] Enter zombie password: ")
                         os.environ['ZOMBIE_IP'] = input(" [?] Enter zombie IP address: ")
                         os.environ['ZOMBIE'] = "enabled"
                         continue
-                    # set zombie user pass
                     if len(zombie_args) == 2:
                         os.environ['USERNAME'] = zombie_args[0]
                         os.environ['PASSWORD'] = zombie_args[1]
                         os.environ['ZOMBIE_IP'] = input(" [?] Enter zombie IP address: ")
                         os.environ['ZOMBIE'] = "enabled"
                         continue
-                    # set zombie user pass ip
                     if len(zombie_args) == 3:
                         os.environ['USERNAME'] = zombie_args[0]
                         os.environ['PASSWORD'] = zombie_args[1]
@@ -216,44 +194,68 @@ def main():
                         os.environ['ZOMBIE'] = "enabled"
                         continue
                     print("[-] Invalid zombie syntax")
-
+                
+                elif attr == "service_scan":
+                    if len(parts) >= 3:
+                        choice = parts[2].lower()
+                    else:
+                        choice = input(" [?] Enable service scan? (true/false): ").lower()
+                    if choice in ["true", "t"]:
+                        os.environ['SERVICE_SCAN'] = "true"
+                        print(" [+] Service scan enabled")
+                    elif choice in ["false", "f"]:
+                        os.environ['SERVICE_SCAN'] = "false"
+                        print(" [+] Service scan disabled")
+                    else:
+                        print(" [!] Invalid choice.")
+                
+                elif attr == "host_check":
+                    if len(parts) >= 3:
+                        choice = parts[2].lower()
+                    else:
+                        choice = input(" [?] Perform host up check? (true/false, default true): ").lower()
+                    if choice in ["true", "t"]:
+                        os.environ['HOST_CHECK'] = "true"
+                        print(" [+] Host up check will be performed")
+                    elif choice in ["false", "f"]:
+                        os.environ['HOST_CHECK'] = "false"
+                        print(" [+] Host up check will be skipped")
+                    else:
+                        print(" [!] Invalid choice.")
         
         elif cmd.startswith("zombie"):
             parts = cmd.split()
             if len(parts) < 2:
-                print(" [!] Usage: zombie stauts/check")
+                print(" [!] Usage: zombie status/check")
             else:
                 attr = parts[1].lower()
-            if attr == "status":
-                if os.environ.get('ZOMBIE') == 'enabled':
-                    print(" [*] Zombie configuration is enabled.")
-                    print(f"     USERNAME: {os.environ.get('USERNAME', 'Not set')}")
-                    print(f"     PASSWORD: {os.environ.get('PASSWORD', 'Not set')}")
-                    print(f"     ZOMBIE_IP: {os.environ.get('ZOMBIE_IP', 'Not set')}")
-                else:
-                    print(" [*] Zombie configuration is disabled.")
-            if attr == "check":
-                if os.environ.get('ZOMBIE') == 'enabled':
-                    zombie_ip = os.environ.get('ZOMBIE_IP')
-                    user = os.environ.get('USERNAME')
-                    password = os.environ.get('PASSWORD')
-                    print(" [*] Checking zombie readiness...")
-                    ready = check_zombie_ready(zombie_ip, user, password)
-                    if ready == 0:
-                        print(" [+] Zombie is ready for use.")
+                if attr == "status":
+                    if os.environ.get('ZOMBIE') == 'enabled':
+                        print(" [*] Zombie configuration is enabled.")
+                        print(f"     USERNAME: {os.environ.get('USERNAME', 'Not set')}")
+                        print(f"     PASSWORD: {os.environ.get('PASSWORD', 'Not set')}")
+                        print(f"     ZOMBIE_IP: {os.environ.get('ZOMBIE_IP', 'Not set')}")
                     else:
-                        print(f" [!] Zombie check failed with code {ready}.")
-                else:
-                    print(" [!] Zombie configuration is not set.")
-
-
-
+                        print(" [*] Zombie configuration is disabled.")
+                if attr == "check":
+                    if os.environ.get('ZOMBIE') == 'enabled':
+                        zombie_ip = os.environ.get('ZOMBIE_IP')
+                        user = os.environ.get('USERNAME')
+                        password = os.environ.get('PASSWORD')
+                        print(" [*] Checking zombie readiness...")
+                        ready = check_zombie_ready(zombie_ip, user, password)
+                        if ready == 0:
+                            print(" [+] Zombie is ready for use.")
+                        else:
+                            print(f" [!] Zombie check failed with code {ready}.")
+                    else:
+                        print(" [!] Zombie configuration is not set.")
+        
         elif cmd == "ip":
             print(f" [*] Current IP: {os.environ.get('IP', 'Not set')}")
         
         elif cmd == "stype":
-            scantype = os.environ.get('SCAN_TYPE')
-            print(f" [*] Current scan type: {scantype}")
+            print(f" [*] Current scan type: {os.environ.get('SCAN_TYPE', 'Not set')}")
         
         elif cmd == "fname":
             fname = os.environ.get('FNAME')
@@ -266,6 +268,8 @@ def main():
             print(f"     IP: {os.environ.get('IP', 'Not set')}")
             print(f"     Scan Type: {os.environ.get('SCAN_TYPE', 'Not set')}")
             print(f"     Results Folder: {os.environ.get('FNAME', 'Not set')}")
+            print(f"     Service Scan: {'enabled' if os.environ.get('SERVICE_SCAN', 'true') == 'true' else 'disabled'}")
+            print(f"     Host Check: {'enabled' if os.environ.get('HOST_CHECK', 'true') == 'true' else 'disabled'}")
         
         elif cmd == "clear":
             os.system('clear')

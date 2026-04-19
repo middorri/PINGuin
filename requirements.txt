@@ -1,0 +1,19 @@
+# PINGuin - Python dependencies
+requests>=2.25.1
+
+# Note: The following external tools are required for full functionality
+# and must be installed separately via system package manager:
+#
+#   nmap          - Network scanning
+#   sshpass       - SSH password automation (for zombie mode)
+#   ssh-audit     - SSH security auditing (enumeration)
+#   whatweb       - Web technology identification
+#   testssl.sh    - SSL/TLS testing
+#   enum4linux    - SMB enumeration
+#   ftp           - FTP client (usually pre-installed)
+#
+# On Debian/Ubuntu:
+#   sudo apt install nmap sshpass ssh-audit whatweb testssl.sh enum4linux ftp
+#
+# On Kali Linux (most tools pre-installed):
+#   sudo apt install sshpass testssl.sh

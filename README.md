@@ -1,4 +1,4 @@
-# PINGuin v1.1
+# PINGuin v2.0
 
 Automated reconnaissance tool for network scanning and enumeration.\
 \
@@ -41,6 +41,8 @@ In the PINGuin interface:
 
     status - Show current settings
 
+    clear - Clear the terminal screen
+
     help - Show all commands
 
     exit - Quit the tool
@@ -55,6 +57,7 @@ Set configuration:
 
     set config <file> - Load settings from config file
 
+    set zombie <config path>/<USR/PASS/IP>
 Examples
 
 Quick scan:
@@ -79,6 +82,8 @@ Create a config file with settings:
 IP 192.168.1.100
 STYPE stealthy
 FNAME scan_results
+SERVICE_SCAN = false
+HOST_CHECK = true
 ZOMBIE_USER <USERNAME>
 ZOMBIE_PASS <PASSWORD>
 ZOMBIE_IP <IP>
@@ -88,15 +93,18 @@ File Structure
 
 ├── main.py                 # Main interface
 ├── config_loader.py        # Configuration loader
-├── config.py              # Configuration module
+├── config.py               # Configuration module
+├── add_jitter_to_nmap.py   # modifies nmap scan_engine.cc
+├── requirements.txt        # what tools libs required for PINGuin to work properly        
 └── modules/
     ├── aggressive/         # Fast, comprehensive scans
     │   ├── network_scan.py
     │   └── enumeration.py
-    └── stealthy/          # Slow, stealthy scans  
+    └── stealthy/           # Slow, stealthy scans  
         ├── network_scan.py
         └── enumeration.py
-
+└── config
+    └── config_loader       # loads configs from config file
 Scan Types
 
 Aggressive:
@@ -107,11 +115,9 @@ Aggressive:
 
 Stealthy:
 
-    Slow scanning with timing template T2
+    Slow scanning with timing template T1
 
     Random delays between scans
-
-    Fragment packets and source port manipulation
 
 Contains:
 

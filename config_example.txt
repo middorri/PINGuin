@@ -1,6 +1,8 @@
-IP 45.33.32.156
-FNAME pinguin_results
-STYPE aggressive
+IP = 45.33.32.156
+FNAME = pinguin_results
+STYPE = aggressive
+SERVICE_SCAN = false
+HOST_CHECK = true
 
 #ZOMBIE_USER <USERNAME>
 #ZOMBIE_PASS <PASSWORD>

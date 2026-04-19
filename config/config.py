@@ -7,6 +7,9 @@ Global configuration variables and accessor functions
 IP = None
 SCAN_TYPE = None
 FNAME = None
+SERVICE_SCAN = True  # Default to enabled
+HOST_CHECK = True  # Default to enabled
+
 
 def set_ip_address(ip):
     """Set target IP address"""
@@ -70,3 +73,17 @@ def set_zombie_ip(ip):
 def get_zombie_ip():
     """Get zombie IP"""
     return ZOMBIE_IP
+
+def set_service_scan(tf):
+    global SERVICE_SCAN
+    SERVICE_SCAN = tf
+
+def is_service_scan_enabled():
+    return SERVICE_SCAN
+
+def set_host_check(tf):
+    global HOST_CHECK
+    HOST_CHECK = tf
+
+def is_host_check_enabled():
+    return HOST_CHECK
