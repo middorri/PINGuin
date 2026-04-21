@@ -189,7 +189,12 @@ def scan_single_tcp_port(ip, port, base_name, zombie=False):
         ]
         
         print(f" [*] Scanning port {port} on {ip} via zombie (delay={delay}s, data={data}, rate={rate})")
-        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        result = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+
+        for line in result.stdout:
+            print(line, end="")
+
+        result.wait()
         if result.returncode != 0:
             print(f" [!] Zombie scan for port {port} failed: {result.stderr}")
             return None
@@ -201,12 +206,12 @@ def scan_single_tcp_port(ip, port, base_name, zombie=False):
             f"{ZOMBIE_USER}@{ZOMBIE_IP}:{remote_xml}",
             xml_output
         ]
-        process = subprocess.Popen(scp_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        result = subprocess.Popen(scp_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 
-        for line in process.stdout:
+        for line in result.stdout:
             print(line, end="")
 
-        process.wait()
+        result.wait()
         if result.returncode != 0:
             print(f" [!] Failed to copy XML for port {port}: {result.stderr}")
             return None
@@ -225,7 +230,12 @@ def scan_single_tcp_port(ip, port, base_name, zombie=False):
             "-oX", xml_output, ip
         ]
         print(f" [*] Scanning port {port} on {ip} (delay={delay}s, data={data}, rate={rate})")
-        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        result = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+
+        for line in result.stdout:
+            print(line, end="")
+
+        result.wait()
         if result.returncode != 0:
             print(f" [!] Local scan for port {port} failed: {result.stderr}")
             return None
@@ -367,6 +377,7 @@ def run_scan_chain(ip, folder_name):
                 "-sV", "--version-intensity", "5", "--data-length", str(data),
                 "-p", ports_str, "-oA", f"{base}_tcp_service_versions", ip
             ]
+            print(f" [*] Scanning ports {ports_str} on {ip} (delay={delay}s, data={data}, rate={rate})")
             subprocess.run(cmd, check=False)
     elif not service_scan_enabled:
         print(" [*] Service scan disabled. Skipping TCP service detection.")
