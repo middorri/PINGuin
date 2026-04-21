@@ -57,7 +57,16 @@ Set configuration:
 
     set config <file> - Load settings from config file
 
-    set zombie <config path>/<USR/PASS/IP>
+    set zombie <config path>/<USR/PASS/IP> - set zombie credentials
+
+    set service_scan - Enable/disable service version scanning
+
+    set host_check - Enable/disable host up check
+
+    set nmap_path - Set custom path to nmap binary
+
+    set debug - Enable/disable debug mode
+
 Examples
 
 Quick scan:
