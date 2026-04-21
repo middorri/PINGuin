@@ -65,10 +65,16 @@ def use_case():
 def main():
     banner()
     parser = argparse.ArgumentParser()
+
     parser.add_argument("-c", "--config", help="Path to configuration file", type=str)
+    parser.add_argument("--debug", action="store_true", help="Enable debug output (verbose nmap commands, subprocess output, etc.)")
+
     args = parser.parse_args()
     if args.config:
         config_loader.load_config(args.config)
+    
+    if args.debug:
+        os.environ['DEBUG'] = True
 
     cmd = ""
     while cmd != "exit":
@@ -92,6 +98,7 @@ def main():
             print("   service_scan - Enable/disable service version scanning (true/false)")
             print("   host_check   - Enable/disable host up check (true/false, default: true)")
             print("   nmap_path    - Set custom path to nmap binary (if not in PATH)")
+            print("   debug        - Enable/disable debug mode (true/false)")
             print("\n Usage: set <attribute> <value>")
         
         elif cmd.startswith("scan"):
@@ -230,6 +237,20 @@ def main():
                     else:
                         os.environ['NMAP_PATH'] = input(" [?] Enter custom nmap path: ")
                     print(f" [+] Nmap path set to {os.environ['NMAP_PATH']}")
+                
+                elif attr == "debug":
+                    if len(parts) >= 3:
+                        choice = parts[2].lower()
+                    else:
+                        choice = input(" [?] Enable debug mode? (true/false): ").lower()
+                    if choice in ["true", "t"]:
+                        os.environ['DEBUG'] = True
+                        print(" [+] Debug mode enabled")
+                    elif choice in ["false", "f"]:
+                        os.environ['DEBUG'] = False
+                        print(" [+] Debug mode disabled")
+                    else:
+                        print(" [!] Invalid choice.")
         
         elif cmd.startswith("zombie"):
             parts = cmd.split()

@@ -15,6 +15,32 @@ import tempfile
 import random
 import requests
 import time
+import argparse
+
+# Global debug flag
+DEBUG = os.environ.get('DEBUG')
+
+def debug_print(*args, **kwargs):
+    """Print only when DEBUG is True."""
+    if DEBUG:
+        print(*args, **kwargs)
+
+def run_cmd(cmd, **kwargs):
+    """
+    Run a command, always capture output.
+    If DEBUG is False, suppress printing of stdout/stderr.
+    Returns the subprocess.CompletedProcess object.
+    """
+    # Ensure capture_output and text are enabled for consistent behavior
+    kwargs.setdefault('capture_output', True)
+    kwargs.setdefault('text', True)
+    result = subprocess.run(cmd, **kwargs)
+    if DEBUG:
+        if result.stdout:
+            print(result.stdout, end='')
+        if result.stderr:
+            print(result.stderr, end='', file=sys.stderr)
+    return result
 
 def shodan_scan():
     """Perform a quick Shodan scan to gather basic info about the target IP"""
@@ -24,7 +50,7 @@ def shodan_scan():
         return []
     try:
         host = requests.get(f"https://internetdb.shodan.io/{ip}").json()
-        print(host)
+        debug_print(host)
         return host.get("ports", [])
     except Exception as e:
         print(f" [!] Shodan scan failed: {e}")
@@ -99,8 +125,8 @@ def is_host_up(ip):
             f"-oX /tmp/host_up_check.xml "
             f"{ip}"
         ]
-        print(f" [*] Checking if {ip} is up via zombie host...")
-        result = subprocess.run(nmap_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        debug_print(f" [*] Checking if {ip} is up via zombie host...")
+        result = run_cmd(nmap_cmd)
 
         if result.returncode != 0:
             print(f" [!] Nmap command failed: {result.stderr}")
@@ -115,7 +141,7 @@ def is_host_up(ip):
             f"{ZOMBIE_USER}@{ZOMBIE_IP}:/tmp/host_up_check.xml",
             xml_output
         ]
-        result = subprocess.run(scp_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        result = run_cmd(scp_cmd)
 
         if result.returncode != 0:
             print(f" [!] Failed to copy XML from zombie: {result.stderr}")
@@ -137,8 +163,8 @@ def is_host_up(ip):
             "-oX", xml_output,
             ip
         ]
-        print(f" [*] Checking if {ip} is up...")
-        subprocess.run(nmap_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        debug_print(f" [*] Checking if {ip} is up...")
+        run_cmd(nmap_cmd)
 
     try:
         tree = ET.parse(xml_output)
@@ -188,13 +214,8 @@ def scan_single_tcp_port(ip, port, base_name, zombie=False):
             f"{ip}"
         ]
         
-        print(f" [*] Scanning port {port} on {ip} via zombie (delay={delay}s, data={data}, rate={rate})")
-        result = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-
-        for line in result.stdout:
-            print(line, end="")
-
-        result.wait()
+        debug_print(f" [*] Scanning port {port} on {ip} via zombie (delay={delay}s, data={data}, rate={rate})")
+        result = run_cmd(cmd)
         if result.returncode != 0:
             print(f" [!] Zombie scan for port {port} failed: {result.stderr}")
             return None
@@ -206,20 +227,25 @@ def scan_single_tcp_port(ip, port, base_name, zombie=False):
             f"{ZOMBIE_USER}@{ZOMBIE_IP}:{remote_xml}",
             xml_output
         ]
-        result = subprocess.Popen(scp_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-
-        for line in result.stdout:
-            print(line, end="")
-
-        result.wait()
-        if result.returncode != 0:
-            print(f" [!] Failed to copy XML for port {port}: {result.stderr}")
+        # Special handling for scp to show progress only in debug mode
+        if DEBUG:
+            process = subprocess.Popen(scp_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+            for line in process.stdout:
+                print(line, end="")
+            process.wait()
+            result_code = process.returncode
+        else:
+            result = run_cmd(scp_cmd)
+            result_code = result.returncode
+        
+        if result_code != 0:
+            print(f" [!] Failed to copy XML for port {port}")
             return None
         
-        subprocess.run([
+        run_cmd([
             "sshpass", "-p", ZOMBIE_PASS, "ssh", "-o", "StrictHostKeyChecking=no",
             f"{ZOMBIE_USER}@{ZOMBIE_IP}", f"rm {remote_xml}"
-        ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        ])
         
     else:
         cmd = [
@@ -229,13 +255,8 @@ def scan_single_tcp_port(ip, port, base_name, zombie=False):
             "--source-port", str(port),
             "-oX", xml_output, ip
         ]
-        print(f" [*] Scanning port {port} on {ip} (delay={delay}s, data={data}, rate={rate})")
-        result = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-
-        for line in result.stdout:
-            print(line, end="")
-
-        result.wait()
+        debug_print(f" [*] Scanning port {port} on {ip} (delay={delay}s, data={data}, rate={rate})")
+        result = run_cmd(cmd)
         if result.returncode != 0:
             print(f" [!] Local scan for port {port} failed: {result.stderr}")
             return None
@@ -273,7 +294,7 @@ def run_scan_chain(ip, folder_name):
     
     merged_tcp_xml = Path(f"{base}_tcp_syn_all.xml")
     if xml_files:
-        print(f"\n [*] Merging {len(xml_files)} TCP scan results into {merged_tcp_xml}")
+        debug_print(f"\n [*] Merging {len(xml_files)} TCP scan results into {merged_tcp_xml}")
         merge_all_xml_results(xml_files, merged_tcp_xml)
     else:
         print(" [!] No TCP scan results produced")
@@ -316,21 +337,21 @@ def run_scan_chain(ip, folder_name):
                 f"--max-rate {rate} --scan-delay {delay}s "
                 f"-p {udp_ports} -oX {remote_udp_xml} {ip}"
             ]
-            subprocess.run(cmd, check=False)
-            subprocess.run([
+            run_cmd(cmd)
+            run_cmd([
                 "sshpass", "-p", ZOMBIE_PASS, "scp", "-o", "StrictHostKeyChecking=no",
                 f"{ZOMBIE_USER}@{ZOMBIE_IP}:{remote_udp_xml}", local_udp_xml
-            ], check=False)
-            subprocess.run([
+            ])
+            run_cmd([
                 "sshpass", "-p", ZOMBIE_PASS, "ssh", "-o", "StrictHostKeyChecking=no",
                 f"{ZOMBIE_USER}@{ZOMBIE_IP}", f"rm {remote_udp_xml}"
-            ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            ])
         else:
             cmd = [
                 "sudo", f"{nmap_path}", "-sU", "-T1", "--max-rate", str(rate), "--scan-delay", f"{delay}s",
                 "-p", udp_ports, "-oA", f"{base}_udp_key_ports", ip
             ]
-            subprocess.run(cmd, check=False)
+            run_cmd(cmd)
     else:
         print(" [*] No UDP ports to scan (all TCP ports responded). Skipping UDP discovery.")
     
@@ -362,23 +383,22 @@ def run_scan_chain(ip, folder_name):
                 "-sV --version-intensity 5 "
                 f"--data-length {data} -p {ports_str} -oX {remote_svc_xml} {ip}"
             ]
-            subprocess.run(cmd, check=False)
-            subprocess.run([
+            run_cmd(cmd)
+            run_cmd([
                 "sshpass", "-p", ZOMBIE_PASS, "scp", "-o", "StrictHostKeyChecking=no",
                 f"{ZOMBIE_USER}@{ZOMBIE_IP}:{remote_svc_xml}", local_svc_xml
-            ], check=False)
-            subprocess.run([
+            ])
+            run_cmd([
                 "sshpass", "-p", ZOMBIE_PASS, "ssh", "-o", "StrictHostKeyChecking=no",
                 f"{ZOMBIE_USER}@{ZOMBIE_IP}", f"rm {remote_svc_xml}"
-            ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            ])
         else:
             cmd = [
                 "sudo", f"{nmap_path}", "-sS", "-T1", "--max-rate", str(rate), "--scan-delay", f"{delay}s",
                 "-sV", "--version-intensity", "5", "--data-length", str(data),
                 "-p", ports_str, "-oA", f"{base}_tcp_service_versions", ip
             ]
-            print(f" [*] Scanning ports {ports_str} on {ip} (delay={delay}s, data={data}, rate={rate})")
-            subprocess.run(cmd, check=False)
+            run_cmd(cmd)
     elif not service_scan_enabled:
         print(" [*] Service scan disabled. Skipping TCP service detection.")
     else:
@@ -413,22 +433,22 @@ def run_scan_chain(ip, folder_name):
                 "-sV --version-intensity 1 -sC "
                 f"-p {ports_str} -oX {remote_udpsvc_xml} {ip}"
             ]
-            subprocess.run(cmd, check=False)
-            subprocess.run([
+            run_cmd(cmd)
+            run_cmd([
                 "sshpass", "-p", ZOMBIE_PASS, "scp", "-o", "StrictHostKeyChecking=no",
                 f"{ZOMBIE_USER}@{ZOMBIE_IP}:{remote_udpsvc_xml}", local_udpsvc_xml
-            ], check=False)
-            subprocess.run([
+            ])
+            run_cmd([
                 "sshpass", "-p", ZOMBIE_PASS, "ssh", "-o", "StrictHostKeyChecking=no",
                 f"{ZOMBIE_USER}@{ZOMBIE_IP}", f"rm {remote_udpsvc_xml}"
-            ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            ])
         else:
             cmd = [
                 "sudo", f"{nmap_path}", "-sU", "-T0", "--max-rate", str(rate), "--scan-delay", f"{delay}s",
                 "-sV", "--version-intensity", "1", "-sC", "-p", ports_str,
                 "-oA", f"{base}_udp_service_versions", ip
             ]
-            subprocess.run(cmd, check=False)
+            run_cmd(cmd)
     elif not service_scan_enabled:
         print(" [*] Service scan disabled. Skipping UDP service detection.")
     else:
@@ -499,7 +519,7 @@ def merge_all_xml_results(xml_files, output_path):
             return False
         merged_tree = ET.ElementTree(merged_root)
         merged_tree.write(str(output_path), encoding="utf-8", xml_declaration=True)
-        print(f" [*] Merged {len(all_hosts)} unique hosts into {output_path}")
+        debug_print(f" [*] Merged {len(all_hosts)} unique hosts into {output_path}")
         return True
     except Exception as e:
         print(f" [!] Error merging XML files: {e}")
@@ -541,6 +561,9 @@ def scan_single_ip(ip, folder_name):
 
 def main():
     """Main function that handles both single IP and CIDR ranges"""
+    global DEBUG
+    DEBUG = os.environ.get('DEBUG')
+
     ip = os.environ.get("IP")
     if not ip:
         ip = input(" [?] Enter target IP or CIDR (e.g., 192.168.1.0/24): ").strip()

@@ -9,6 +9,7 @@ SCAN_TYPE = None
 FNAME = None
 SERVICE_SCAN = True  # Default to enabled
 HOST_CHECK = True  # Default to enabled
+DEBUG = False  # Default to disabled
 
 
 def set_ip_address(ip):
@@ -96,3 +97,12 @@ def set_nmap_path(path):
 def get_nmap_path():
     """Get custom nmap path"""
     return NMAP_PATH
+
+def set_is_debug_enabled(tf):
+    """Set debug mode"""
+    global DEBUG
+    DEBUG = tf
+
+def get_is_debug_enabled():
+    """Check if debug mode is enabled"""
+    return DEBUG
