@@ -1,108 +1,35 @@
-#!/usr/bin/python3
-"""
-PINGuin - Configuration Module
-Global configuration variables and accessor functions
-"""
-
-IP = None
-SCAN_TYPE = None
-FNAME = None
-SERVICE_SCAN = True  # Default to enabled
-HOST_CHECK = True  # Default to enabled
-DEBUG = False  # Default to disabled
-
-
-def set_ip_address(ip):
-    """Set target IP address"""
-    global IP
-    IP = ip
+import os
 
 def get_ip():
-    """Get target IP address"""
-    return IP
-
-def set_scan_type(scan_type):
-    """Set scan type (stealthy/aggressive)"""
-    global SCAN_TYPE
-    SCAN_TYPE = scan_type
+    return os.environ.get('IP')
 
 def get_scan_type():
-    """Get current scan type"""
-    return SCAN_TYPE
-
-def set_fname(fname):
-    """Set results folder name"""
-    global FNAME
-    FNAME = fname
+    return os.environ.get('SCAN_TYPE')
 
 def get_fname():
-    """Get results folder name"""
-    return FNAME
-
-def set_is_zombie(zombie):
-    """Set if zombie mode is enabled"""
-    global ZOMBIE
-    ZOMBIE = zombie
-
-def get_is_zombie():
-    """Get if zombie mode is enabled"""
-    return ZOMBIE
-
-def set_zombie_username(username):
-    """Set username"""
-    global USERNAME
-    USERNAME = username
-
-def get_zombie_username():
-    """Get username"""
-    return USERNAME
-
-def set_zombie_password(password):
-    """Set password"""
-    global PASSWORD
-    PASSWORD = password
-
-def get_zombie_password():
-    """Get password"""
-    return PASSWORD
-
-def set_zombie_ip(ip):
-    """Set zombie IP"""
-    global ZOMBIE_IP
-    ZOMBIE_IP = ip
-
-def get_zombie_ip():
-    """Get zombie IP"""
-    return ZOMBIE_IP
-
-def set_service_scan(tf):
-    global SERVICE_SCAN
-    SERVICE_SCAN = tf
+    return os.environ.get('FNAME')
 
 def is_service_scan_enabled():
-    return SERVICE_SCAN
-
-def set_host_check(tf):
-    global HOST_CHECK
-    HOST_CHECK = tf
+    return os.environ.get('SERVICE_SCAN', 'true').lower() == 'true'
 
 def is_host_check_enabled():
-    return HOST_CHECK
-
-def set_nmap_path(path):
-    """Set custom nmap path"""
-    global NMAP_PATH
-    NMAP_PATH = path
+    return os.environ.get('HOST_CHECK', 'true').lower() == 'true'
 
 def get_nmap_path():
-    """Get custom nmap path"""
-    return NMAP_PATH
-
-def set_is_debug_enabled(tf):
-    """Set debug mode"""
-    global DEBUG
-    DEBUG = tf
+    return os.environ.get('NMAP_PATH', 'nmap')
 
 def get_is_debug_enabled():
-    """Check if debug mode is enabled"""
-    return DEBUG
+    return os.environ.get('DEBUG', 'false').lower() == 'true'
+
+# Zombie related
+def get_is_zombie():
+    return os.environ.get('ZOMBIE') == 'enabled'
+
+def get_zombie_username():
+    return os.environ.get('USERNAME')
+
+def get_zombie_password():
+    return os.environ.get('PASSWORD')
+
+def get_zombie_ip():
+    return os.environ.get('ZOMBIE_IP')

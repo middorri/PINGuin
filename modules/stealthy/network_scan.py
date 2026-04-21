@@ -18,7 +18,7 @@ import time
 import argparse
 
 # Global debug flag
-DEBUG = os.environ.get('DEBUG')
+DEBUG = True if os.environ.get('DEBUG', 'false').lower() == 'true' else False
 
 def debug_print(*args, **kwargs):
     """Print only when DEBUG is True."""

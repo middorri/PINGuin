@@ -1,4 +1,4 @@
-# PINGuin v2.2.3
+# PINGuin v2.2.4
 
 Automated reconnaissance tool for network scanning and enumeration.\
 \
@@ -103,7 +103,7 @@ File Structure
 ├── main.py                 # Main interface
 ├── config_loader.py        # Configuration loader
 ├── config.py               # Configuration module
-├── add_jitter_to_nmap.py   # modifies nmap scan_engine.cc
+├── setup.py                # run after downloading the repository
 ├── requirements.txt        # what tools libs required for PINGuin to work properly        
 └── modules/
     ├── aggressive/         # Fast, comprehensive scans

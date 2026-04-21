@@ -74,7 +74,7 @@ def main():
         config_loader.load_config(args.config)
     
     if args.debug:
-        os.environ['DEBUG'] = True
+        os.environ['DEBUG'] = "true"
 
     cmd = ""
     while cmd != "exit":
@@ -244,10 +244,10 @@ def main():
                     else:
                         choice = input(" [?] Enable debug mode? (true/false): ").lower()
                     if choice in ["true", "t"]:
-                        os.environ['DEBUG'] = True
+                        os.environ['DEBUG'] = 'true'
                         print(" [+] Debug mode enabled")
                     elif choice in ["false", "f"]:
-                        os.environ['DEBUG'] = False
+                        os.environ['DEBUG'] = 'false'
                         print(" [+] Debug mode disabled")
                     else:
                         print(" [!] Invalid choice.")
@@ -299,6 +299,8 @@ def main():
             print(f"     Results Folder: {os.environ.get('FNAME', 'Not set')}")
             print(f"     Service Scan: {'enabled' if os.environ.get('SERVICE_SCAN', 'true') == 'true' else 'disabled'}")
             print(f"     Host Check: {'enabled' if os.environ.get('HOST_CHECK', 'true') == 'true' else 'disabled'}")
+            print(f"     Nmap Path: {os.environ.get('NMAP_PATH', 'nmap (default)')}")
+            print(f"     Debug Mode: {'enabled' if os.environ.get('DEBUG', 'false') == 'true' else 'disabled'}")
         
         elif cmd == "clear":
             os.system('clear')
