@@ -77,7 +77,7 @@ def is_host_up(ip):
     """Check if host is up using stealthy ping sweep. Returns True if up, False otherwise."""
     with tempfile.NamedTemporaryFile(delete=False, suffix=".xml") as tmp:
         xml_output = tmp.name
-    
+    nmap_path = os.environ.get("NMAP_PATH", "nmap")
     if os.environ.get('ZOMBIE') == 'enabled':
         ZOMBIE_USER = os.environ.get('USERNAME')
         ZOMBIE_PASS = os.environ.get('PASSWORD')
@@ -88,7 +88,7 @@ def is_host_up(ip):
             "-o", "StrictHostKeyChecking=no",
             "-tt",
             f"{ZOMBIE_USER}@{ZOMBIE_IP}", "cd /tmp &&",
-            f"echo '{ZOMBIE_PASS}' | sudo -S nmap -sn "
+            f"echo '{ZOMBIE_PASS}' | sudo -S {nmap_path} -sn "
             "-PE -PP -PM "
             "-PS21,22,25,53,80,443 "
             "-PA80,443,53 "
@@ -125,7 +125,7 @@ def is_host_up(ip):
 
     else:
         nmap_cmd = [
-            "nmap",
+            f"{nmap_path}",
             "-sn",
             "-PE", "-PP", "-PM",
             "-PS21,22,25,53,80,443",
@@ -160,7 +160,7 @@ def scan_single_tcp_port(ip, port, base_name, zombie=False):
     delay = random.randint(1, 10)
     data = random.randint(0, 100)
     rate = random.randint(1, 15)
-    
+    nmap_path = os.environ.get("NMAP_PATH", "nmap")
     xml_output = f"{base_name}_port_{port}.xml"
     
     if zombie:
@@ -175,7 +175,7 @@ def scan_single_tcp_port(ip, port, base_name, zombie=False):
             "-o", "StrictHostKeyChecking=no",
             "-tt",
             f"{ZOMBIE_USER}@{ZOMBIE_IP}", "cd /tmp &&",
-            f"echo '{ZOMBIE_PASS}' | sudo -S nmap -sS -p {port} -T1 "
+            f"echo '{ZOMBIE_PASS}' | sudo -S {nmap_path} -sS -p {port} -T1 "
             "--host-timeout 0 "
             f"--max-rate {rate} "
             f"--scan-delay {delay}s "
@@ -201,7 +201,12 @@ def scan_single_tcp_port(ip, port, base_name, zombie=False):
             f"{ZOMBIE_USER}@{ZOMBIE_IP}:{remote_xml}",
             xml_output
         ]
-        result = subprocess.run(scp_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        process = subprocess.Popen(scp_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+
+        for line in process.stdout:
+            print(line, end="")
+
+        process.wait()
         if result.returncode != 0:
             print(f" [!] Failed to copy XML for port {port}: {result.stderr}")
             return None
@@ -213,7 +218,7 @@ def scan_single_tcp_port(ip, port, base_name, zombie=False):
         
     else:
         cmd = [
-            "sudo", "nmap", "-sS", "-p", str(port), "-T1", "--host-timeout", "0",
+            "sudo", f"{nmap_path}", "-sS", "-p", str(port), "-T1", "--host-timeout", "0",
             "--max-rate", str(rate), "--scan-delay", f"{delay}s",
             "--max-retries", "3", "--data-length", str(data),
             "--source-port", str(port),
@@ -232,7 +237,7 @@ def run_scan_chain(ip, folder_name):
     safe_ip = ip.replace('/', '_')
     ip_folder = Path(folder_name) / safe_ip
     ip_folder.mkdir(parents=True, exist_ok=True)
-    
+
     base = f"{ip_folder}/port"
     zombie_mode = os.environ.get('ZOMBIE') == 'enabled'
     service_scan_enabled = os.environ.get('SERVICE_SCAN', 'true').lower() == 'true'
@@ -281,6 +286,8 @@ def run_scan_chain(ip, folder_name):
         print(f" [*] Sleeping {sleep_time}s before UDP scan...")
         time.sleep(sleep_time)
         
+        nmap_path = os.environ.get("NMAP_PATH", "nmap")
+
         delay = random.randint(1, 10)
         rate = random.randint(1, 15)
         
@@ -295,7 +302,7 @@ def run_scan_chain(ip, folder_name):
                 "sshpass", "-p", ZOMBIE_PASS,
                 "ssh", "-o", "StrictHostKeyChecking=no", "-tt",
                 f"{ZOMBIE_USER}@{ZOMBIE_IP}", "cd /tmp &&",
-                f"echo '{ZOMBIE_PASS}' | sudo -S nmap -sU -T1 "
+                f"echo '{ZOMBIE_PASS}' | sudo -S {nmap_path} -sU -T1 "
                 f"--max-rate {rate} --scan-delay {delay}s "
                 f"-p {udp_ports} -oX {remote_udp_xml} {ip}"
             ]
@@ -310,7 +317,7 @@ def run_scan_chain(ip, folder_name):
             ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         else:
             cmd = [
-                "sudo", "nmap", "-sU", "-T1", "--max-rate", str(rate), "--scan-delay", f"{delay}s",
+                "sudo", f"{nmap_path}", "-sU", "-T1", "--max-rate", str(rate), "--scan-delay", f"{delay}s",
                 "-p", udp_ports, "-oA", f"{base}_udp_key_ports", ip
             ]
             subprocess.run(cmd, check=False)
@@ -334,11 +341,13 @@ def run_scan_chain(ip, folder_name):
             ZOMBIE_IP = os.environ.get('ZOMBIE_IP')
             remote_svc_xml = "/tmp/scan_tcp_service_versions.xml"
             local_svc_xml = f"{base}_tcp_service_versions.xml"
+            nmap_path = os.environ.get("NMAP_PATH", "nmap")
+
             cmd = [
                 "sshpass", "-p", ZOMBIE_PASS,
                 "ssh", "-o", "StrictHostKeyChecking=no", "-tt",
                 f"{ZOMBIE_USER}@{ZOMBIE_IP}", "cd /tmp &&",
-                f"echo '{ZOMBIE_PASS}' | sudo -S nmap -sS -T1 "
+                f"echo '{ZOMBIE_PASS}' | sudo -S {nmap_path} -sS -T1 "
                 f"--max-rate {rate} --scan-delay {delay}s "
                 "-sV --version-intensity 5 "
                 f"--data-length {data} -p {ports_str} -oX {remote_svc_xml} {ip}"
@@ -354,7 +363,7 @@ def run_scan_chain(ip, folder_name):
             ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         else:
             cmd = [
-                "sudo", "nmap", "-sS", "-T1", "--max-rate", str(rate), "--scan-delay", f"{delay}s",
+                "sudo", f"{nmap_path}", "-sS", "-T1", "--max-rate", str(rate), "--scan-delay", f"{delay}s",
                 "-sV", "--version-intensity", "5", "--data-length", str(data),
                 "-p", ports_str, "-oA", f"{base}_tcp_service_versions", ip
             ]
@@ -388,7 +397,7 @@ def run_scan_chain(ip, folder_name):
                 "sshpass", "-p", ZOMBIE_PASS,
                 "ssh", "-o", "StrictHostKeyChecking=no", "-tt",
                 f"{ZOMBIE_USER}@{ZOMBIE_IP}", "cd /tmp &&",
-                f"echo '{ZOMBIE_PASS}' | sudo -S nmap -sU -T0 "
+                f"echo '{ZOMBIE_PASS}' | sudo -S {nmap_path} -sU -T0 "
                 f"--max-rate {rate} --scan-delay {delay}s "
                 "-sV --version-intensity 1 -sC "
                 f"-p {ports_str} -oX {remote_udpsvc_xml} {ip}"
@@ -404,7 +413,7 @@ def run_scan_chain(ip, folder_name):
             ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         else:
             cmd = [
-                "sudo", "nmap", "-sU", "-T0", "--max-rate", str(rate), "--scan-delay", f"{delay}s",
+                "sudo", f"{nmap_path}", "-sU", "-T0", "--max-rate", str(rate), "--scan-delay", f"{delay}s",
                 "-sV", "--version-intensity", "1", "-sC", "-p", ports_str,
                 "-oA", f"{base}_udp_service_versions", ip
             ]

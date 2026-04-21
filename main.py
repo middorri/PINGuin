@@ -91,6 +91,7 @@ def main():
             print("   zombie       - Set zombie configuration file path/ USR/PASS/IP")
             print("   service_scan - Enable/disable service version scanning (true/false)")
             print("   host_check   - Enable/disable host up check (true/false, default: true)")
+            print("   nmap_path    - Set custom path to nmap binary (if not in PATH)")
             print("\n Usage: set <attribute> <value>")
         
         elif cmd.startswith("scan"):
@@ -222,6 +223,13 @@ def main():
                         print(" [+] Host up check will be skipped")
                     else:
                         print(" [!] Invalid choice.")
+                
+                elif attr == "nmap_path":
+                    if len(parts) >= 3:
+                        os.environ['NMAP_PATH'] = parts[2]
+                    else:
+                        os.environ['NMAP_PATH'] = input(" [?] Enter custom nmap path: ")
+                    print(f" [+] Nmap path set to {os.environ['NMAP_PATH']}")
         
         elif cmd.startswith("zombie"):
             parts = cmd.split()

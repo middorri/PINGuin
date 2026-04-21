@@ -87,3 +87,12 @@ def set_host_check(tf):
 
 def is_host_check_enabled():
     return HOST_CHECK
+
+def set_nmap_path(path):
+    """Set custom nmap path"""
+    global NMAP_PATH
+    NMAP_PATH = path
+
+def get_nmap_path():
+    """Get custom nmap path"""
+    return NMAP_PATH
