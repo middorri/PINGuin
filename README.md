@@ -1,4 +1,4 @@
-# PINGuin v2.2.4
+# PINGuin v2.3.4
 
 Automated reconnaissance tool for network scanning and enumeration.\
 \

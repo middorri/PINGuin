@@ -95,9 +95,9 @@ def main():
             print("   fname        - Set folder name for results")
             print("   config       - Set configuration file path")
             print("   zombie       - Set zombie configuration file path/ USR/PASS/IP")
-            print("   service_scan - Enable/disable service version scanning (true/false)")
-            print("   host_check   - Enable/disable host up check (true/false, default: true)")
-            print("   nmap_path    - Set custom path to nmap binary (if not in PATH)")
+            print("   service-scan - Enable/disable service version scanning (true/false)")
+            print("   host-check   - Enable/disable host up check (true/false, default: true)")
+            print("   nmap-path    - Set custom path to nmap binary (if not in PATH)")
             print("   debug        - Enable/disable debug mode (true/false)")
             print("\n Usage: set <attribute> <value>")
         
@@ -203,7 +203,7 @@ def main():
                         continue
                     print("[-] Invalid zombie syntax")
                 
-                elif attr == "service_scan":
+                elif attr == "service-scan":
                     if len(parts) >= 3:
                         choice = parts[2].lower()
                     else:
@@ -217,7 +217,7 @@ def main():
                     else:
                         print(" [!] Invalid choice.")
                 
-                elif attr == "host_check":
+                elif attr == "host-check":
                     if len(parts) >= 3:
                         choice = parts[2].lower()
                     else:
@@ -231,7 +231,7 @@ def main():
                     else:
                         print(" [!] Invalid choice.")
                 
-                elif attr == "nmap_path":
+                elif attr == "nmap-path":
                     if len(parts) >= 3:
                         os.environ['NMAP_PATH'] = parts[2]
                     else:
@@ -291,6 +291,18 @@ def main():
             if fname and not os.path.exists(f"{fname}"):
                 os.mkdir(f"{fname}")
             print(f" [*] Current results folder: {fname}")
+
+        elif cmd == "service-scan":
+            print(f" [*] Service scan is {'enabled' if os.environ.get('SERVICE_SCAN', 'true') == 'true' else 'disabled'}")
+        
+        elif cmd == "host-check":
+            print(f" [*] Host up check is {'enabled' if os.environ.get('HOST_CHECK', 'true') == 'true' else 'disabled'}")
+
+        elif cmd == "nmap-path":
+            print(f" [*] Current nmap path: {os.environ.get('NMAP_PATH', 'nmap (default)')}")
+        
+        elif cmd == "debug":
+            print(f" [*] Debug mode is {'enabled' if os.environ.get('DEBUG', 'false') == 'true' else 'disabled'}")
         
         elif cmd == "status":
             print(f" [*] Current configuration:")

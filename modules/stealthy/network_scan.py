@@ -263,6 +263,60 @@ def scan_single_tcp_port(ip, port, base_name, zombie=False):
     
     return xml_output
 
+def generate_random_chunks(start, end, chunk_size):
+    ports = list(range(start, end + 1))
+    random.shuffle(ports)
+
+    return [ports[i:i + chunk_size] for i in range(0, len(ports), chunk_size)]
+
+
+def adaptive_chunk_size(total_ports, duration):
+    # inverse relation: more time = smaller chunks
+    base = max(5, total_ports // 50)
+    time_factor = max(1, int(duration / 60))  # scale by minutes
+
+    chunk_size = max(5, base // time_factor)
+    return chunk_size
+
+
+def scan(ip, port_range, duration, base_name):
+    delay = random.randint(1, 10)
+    data = random.randint(0, 100)
+    rate = random.randint(1, 15)
+    nmap_path = os.environ.get("NMAP_PATH", "nmap")
+    xml_output = f"{base_name}_ports_{port_str}.xml"
+    start, end = port_range
+    total_ports = end - start + 1
+
+    chunks = adaptive_chunk_size(total_ports, duration)
+    groups = generate_random_chunks(start, end, chunks)
+
+    sleep_base = duration / max(len(groups), 1)
+
+    print(f"[+] Total ports: {total_ports}")
+    print(f"[+] Chunks: {len(groups)}")
+    print(f"[+] Base sleep: {sleep_base:.2f}s")
+
+    for i, group in enumerate(groups):
+        port_str = ",".join(str(p) for p in group)
+
+        cmd = [
+            "sudo", f"{nmap_path}", "-sS", "-p", str(port_str), "-T1", "--host-timeout", "0",
+            "--max-rate", str(rate), "--scan-delay", f"{delay}s",
+            "--max-retries", "3", "--data-length", str(data),
+            "--source-port", str(port_str.split(",")[0]),
+            "-oX", xml_output, ip
+        ]
+
+        print(f"[{i+1}/{len(groups)}] Scanning {len(group)} ports")
+
+        subprocess.run(cmd)
+
+        jitter = random.uniform(0.5, 1.5)
+        sleep_time = sleep_base * jitter
+
+        time.sleep(sleep_time)
+
 def run_scan_chain(ip, folder_name):
     """Run the 5-scan chain for a single IP"""
     safe_ip = ip.replace('/', '_')
@@ -275,9 +329,34 @@ def run_scan_chain(ip, folder_name):
     
     open_ports = shodan_scan()
     if not open_ports:
-        print(f" [!] No ports from Shodan for {ip}, exiting scan chain.")
-        sys.exit(1)
-    
+        print(" [!] No open ports found via Shodan. you can choose to scan a custom range or exit. scan/exit")
+        ans = input("Option: ").strip().lower()
+        if ans == "exit":
+            print(" [*] Exiting.")
+            sys.exit(0)
+        else:
+            PORT_OPTIONS = {
+                "1": (1, 100),
+                "2": (1, 1000),
+                "3": (1, 10000),
+                "4": (1, 65535)
+            }
+
+            print("Select scan range:")
+            print("1. 1-100")
+            print("2. 1-1000")
+            print("3. 1-10000")
+            print("4. 1-65535")
+
+            choice = input("Option: ").strip()
+            if choice not in PORT_OPTIONS:
+                print("Invalid option")
+                return
+
+            duration = int(input("Scan duration (seconds): ").strip())
+
+            scan(ip, PORT_OPTIONS[choice], duration, base)
+        
     print(f" [*] Will scan {len(open_ports)} ports individually for {ip}")
     
     xml_files = []
