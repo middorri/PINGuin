@@ -2,7 +2,7 @@
 
 Automated reconnaissance tool for network scanning and enumeration.\
 \
-[![License](https://img.shields.io/badge/license-Unlicense-blue.svg)](https://unlicense.org/) [![Python 3.7+](https://img.shields.io/badge/python-3.7%2B-blue.svg)](https://www.python.org/) [![x](https://img.shields.io/badge/x-@k3pt_exe-blue.svg)](https://x.com/k3pt_exe) 
+[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Python 3.7+](https://img.shields.io/badge/python-3.7%2B-blue.svg)](https://www.python.org/) [![x](https://img.shields.io/badge/x-@k3pt_exe-blue.svg)](https://x.com/k3pt_exe) 
 
 ## What it does
 
