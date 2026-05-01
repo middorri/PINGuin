@@ -94,22 +94,49 @@ def check_for_updates(verbose=False):
     return False
 
 def perform_update():
-    """Perform a git pull and return success status."""
+    """Perform a git pull, automatically stashing local changes if needed."""
     print("[*] Pulling latest code from git...")
     try:
-        # Using --ff-only to avoid accidental merges; user can resolve manually if needed
-        result = subprocess.run(
-            ["git", "pull", "--ff-only"],
-            capture_output=True, text=True
+        # Check for uncommitted changes
+        status = subprocess.run(
+            ["git", "status", "--porcelain"],
+            capture_output=True, text=True, check=False
         )
-        if result.returncode == 0:
+        has_changes = bool(status.stdout.strip())
+        
+        stashed = False
+        if has_changes:
+            print("[*] Stashing local changes...")
+            stash_result = subprocess.run(
+                ["git", "stash", "push", "-m", "PINGuin-auto-stash"],
+                capture_output=True, text=True, check=False
+            )
+            if stash_result.returncode != 0:
+                print("[!] Failed to stash changes. Aborting update.")
+                print(stash_result.stderr)
+                return False
+            stashed = True
+        
+        # Pull with ff-only (safer)
+        pull_result = subprocess.run(
+            ["git", "pull", "--ff-only"],
+            capture_output=True, text=True, check=False
+        )
+        
+        if pull_result.returncode == 0:
             print("[+] Update successful.")
-            print(result.stdout)
+            print(pull_result.stdout)
+            if stashed:
+                print("[*] Local changes were stashed. Apply them with: git stash pop")
             return True
         else:
             print("[!] Update failed. Output:")
-            print(result.stderr)
+            print(pull_result.stderr)
+            # If pull failed but we stashed, we need to restore stash
+            if stashed:
+                subprocess.run(["git", "stash", "pop"], capture_output=True)
             return False
+            
     except FileNotFoundError:
         print("[!] Git not found. Cannot update.")
         return False
