@@ -9,7 +9,7 @@ import argparse
 import os
 import sys
 import subprocess
-import config_loader
+import config_loader, config
 
 def banner():
     """Display the PINGuin banner"""
@@ -47,6 +47,76 @@ def check_zombie_ready(zombie_ip, user, password):
     ).format(user=user, ip=zombie_ip, pw=password)
     return subprocess.call(ssh_cmd, shell=True)
 
+def get_current_commit():
+    """Return current commit hash, or None if not in a git repo."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            capture_output=True, text=True, check=False
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except FileNotFoundError:
+        pass
+    return None
+
+def get_remote_commit():
+    """Return latest commit hash from remote (origin/HEAD), or None."""
+    try:
+        # Fetch latest info from remote without merging
+        subprocess.run(["git", "fetch", "--quiet"], check=False)
+        result = subprocess.run(
+            ["git", "rev-parse", "@{u}"],
+            capture_output=True, text=True, check=False
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except FileNotFoundError:
+        pass
+    return None
+
+def check_for_updates(verbose=False):
+    """
+    Check if an update is available.
+    Returns True if update is available, False otherwise or on error.
+    """
+    current = get_current_commit()
+    remote = get_remote_commit()
+    if current and remote and current != remote:
+        if verbose:
+            print(f"\n[!] Update available!")
+            print(f"    Current: {current[:7]}")
+            print(f"    Latest : {remote[:7]}")
+            print("    Run 'update' to pull the latest code.")
+        return True
+    if verbose and current and remote:
+        print("\n[*] PINGuin is up to date.")
+    return False
+
+def perform_update():
+    """Perform a git pull and return success status."""
+    print("[*] Pulling latest code from git...")
+    try:
+        # Using --ff-only to avoid accidental merges; user can resolve manually if needed
+        result = subprocess.run(
+            ["git", "pull", "--ff-only"],
+            capture_output=True, text=True
+        )
+        if result.returncode == 0:
+            print("[+] Update successful.")
+            print(result.stdout)
+            return True
+        else:
+            print("[!] Update failed. Output:")
+            print(result.stderr)
+            return False
+    except FileNotFoundError:
+        print("[!] Git not found. Cannot update.")
+        return False
+    except Exception as e:
+        print(f"[!] Unexpected error: {e}")
+        return False
+
 def use_case():
     """Return the module path for the given use case, prompting if needed"""
     case = os.environ.get('SCAN_TYPE')
@@ -76,6 +146,10 @@ def main():
     if args.debug:
         os.environ['DEBUG'] = "true"
 
+    # Auto‑update check (if enabled)
+    if config.is_auto_update_enabled():
+        check_for_updates(verbose=True)
+
     cmd = ""
     while cmd != "exit":
         cmd = input(" $ ")
@@ -99,6 +173,7 @@ def main():
             print("   host-check   - Enable/disable host up check (true/false, default: true)")
             print("   nmap-path    - Set custom path to nmap binary (if not in PATH)")
             print("   debug        - Enable/disable debug mode (true/false)")
+            print("   auto-update  - Enable/disable automatic update check (true/false)")
             print("\n Usage: set <attribute> <value>")
         
         elif cmd.startswith("scan"):
@@ -251,6 +326,32 @@ def main():
                         print(" [+] Debug mode disabled")
                     else:
                         print(" [!] Invalid choice.")
+
+                elif attr == "auto-update":
+                    if len(parts) >= 3:
+                        choice = parts[2].lower()
+                    else:
+                        choice = input(" [?] Enable automatic update check at startup? (true/false): ").lower()
+                    if choice in ["true", "t"]:
+                        os.environ['AUTO_UPDATE_CHECK'] = 'true'
+                        print(" [+] Auto-update check enabled")
+                    elif choice in ["false", "f"]:
+                        os.environ['AUTO_UPDATE_CHECK'] = 'false'
+                        print(" [+] Auto-update check disabled")
+                    else:
+                        print(" [!] Invalid choice.")
+
+        elif cmd.startswith("update"):
+            parts = cmd.split()
+            if len(parts) == 1:
+                # Manual update: pull the latest code
+                perform_update()
+            elif len(parts) == 2 and parts[1] == "check":
+                # Just check for updates
+                check_for_updates(verbose=True)
+            else:
+                print(" Usage: update          - Pull latest code from git")
+                print("        update check    - Check if an update exists without pulling")
         
         elif cmd.startswith("zombie"):
             parts = cmd.split()
@@ -313,7 +414,10 @@ def main():
             print(f"     Host Check: {'enabled' if os.environ.get('HOST_CHECK', 'true') == 'true' else 'disabled'}")
             print(f"     Nmap Path: {os.environ.get('NMAP_PATH', 'nmap (default)')}")
             print(f"     Debug Mode: {'enabled' if os.environ.get('DEBUG', 'false') == 'true' else 'disabled'}")
-        
+            print(f"     Auto Update Check: {'enabled' if os.environ.get('AUTO_UPDATE_CHECK', 'true') == 'true' else 'disabled'}")
+        elif cmd == "auto-update":
+            print(f" [*] Auto-update check is {'enabled' if os.environ.get('AUTO_UPDATE_CHECK', 'true') == 'true' else 'disabled'}")
+
         elif cmd == "clear":
             os.system('clear')
             banner()

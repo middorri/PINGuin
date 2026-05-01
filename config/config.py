@@ -33,3 +33,6 @@ def get_zombie_password():
 
 def get_zombie_ip():
     return os.environ.get('ZOMBIE_IP')
+
+def is_auto_update_enabled():
+    return os.environ.get('AUTO_UPDATE_CHECK', 'true').lower() == 'true'
