@@ -1,8 +1,8 @@
 # PINGuin v2.4.0
 
-Automated reconnaissance tool for network scanning and enumeration.\
-\
-[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Python 3.7+](https://img.shields.io/badge/python-3.7%2B-blue.svg)](https://www.python.org/) [![x](https://img.shields.io/badge/x-@k3pt_exe-blue.svg)](https://x.com/k3pt_exe) 
+Automated reconnaissance tool for network scanning and enumeration.
+
+[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Python 3.7+](https://img.shields.io/badge/python-3.7%2B-blue.svg)](https://www.python.org/) [![x](https://img.shields.io/badge/x-@k3pt_exe-blue.svg)](https://x.com/k3pt_exe)
 
 ## What it does
 
@@ -11,21 +11,23 @@ Automated reconnaissance tool for network scanning and enumeration.\
 - Supports both stealthy and aggressive scanning modes
 - Handles single IPs or CIDR ranges (like 192.168.1.0/24)
 - Saves results to organized folders
+- **Auto‑update check** – notifies you when a new version is available
 
 ## Requirements
 
 - Python 3
 - Nmap
 - sudo privileges (for some scan types)
+- Git (for update functionality)
 
 ## Installation
-```bash
 
+```bash
 git clone https://github.com/middorri/PINGuin
-cd pinguin
-```
+cd PINGuin
 ## Usage
 ```bash
+
 Run the main interface:
 bash
 
@@ -66,6 +68,8 @@ Set configuration:
     set nmap_path - Set custom path to nmap binary
 
     set debug - Enable/disable debug mode
+
+    set auto-update - Enable/disable automatic update check (true/false)
 
 Examples
 
