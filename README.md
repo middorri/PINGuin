@@ -29,7 +29,7 @@ cd PINGuin
 ## Usage
 
 
-## Run the main interface:
+### Run the main interface:
 ``` bash
 
 python3 main.py
