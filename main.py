@@ -99,14 +99,14 @@ def perform_update():
     try:
         # Check for uncommitted changes
         status = subprocess.run(
-            ["git", "status", "--porcelain"],
+            ["git", " "],
             capture_output=True, text=True, check=False
         )
         has_changes = bool(status.stdout.strip())
         
         stashed = False
         if has_changes:
-            print("[*] Stashing local changes...")
+            print("[*] Uncommitted changes detected. Stashing them automatically...")
             stash_result = subprocess.run(
                 ["git", "stash", "push", "-m", "PINGuin-auto-stash"],
                 capture_output=True, text=True, check=False
@@ -116,8 +116,9 @@ def perform_update():
                 print(stash_result.stderr)
                 return False
             stashed = True
+            print("[+] Changes stashed successfully.")
         
-        # Pull with ff-only (safer)
+        # Pull latest code (using --ff-only for safety)
         pull_result = subprocess.run(
             ["git", "pull", "--ff-only"],
             capture_output=True, text=True, check=False
@@ -125,15 +126,19 @@ def perform_update():
         
         if pull_result.returncode == 0:
             print("[+] Update successful.")
-            print(pull_result.stdout)
+            if pull_result.stdout:
+                print(pull_result.stdout)
             if stashed:
-                print("[*] Local changes were stashed. Apply them with: git stash pop")
+                print("\n[*] Your local changes were stashed automatically.")
+                print("    To restore them, run: git stash pop")
+                print("    (Resolve any conflicts manually if they occur.)")
             return True
         else:
             print("[!] Update failed. Output:")
             print(pull_result.stderr)
-            # If pull failed but we stashed, we need to restore stash
+            # If pull failed but we stashed, restore the stash
             if stashed:
+                print("[*] Restoring your stashed changes...")
                 subprocess.run(["git", "stash", "pop"], capture_output=True)
             return False
             
@@ -143,7 +148,6 @@ def perform_update():
     except Exception as e:
         print(f"[!] Unexpected error: {e}")
         return False
-
 def use_case():
     """Return the module path for the given use case, prompting if needed"""
     case = os.environ.get('SCAN_TYPE')
