@@ -147,7 +147,7 @@ def main():
         os.environ['DEBUG'] = "true"
 
     # Auto‑update check (if enabled)
-    if config.is_auto_update_enabled():
+    if os.environ.get('AUTO_UPDATE_CHECK', 'true').lower() == 'true':
         check_for_updates(verbose=True)
 
     cmd = ""
