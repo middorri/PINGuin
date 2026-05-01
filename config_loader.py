@@ -3,10 +3,31 @@
 PINGuin - Configuration Loader
 Loads settings from a config file and sets environment variables.
 Supports key=value format, with boolean values (true/false) stored as strings.
+Now supports all configuration attributes including auto-update.
 """
 
 import os
 import sys
+
+# Mapping from config file keys (normalized) to environment variable names
+KEY_MAPPING = {
+    'IP': 'IP',
+    'STYPE': 'SCAN_TYPE',
+    'SCAN_TYPE': 'SCAN_TYPE',
+    'FNAME': 'FNAME',
+    'SERVICE-SCAN': 'SERVICE_SCAN',
+    'SERVICE_SCAN': 'SERVICE_SCAN',
+    'HOST-CHECK': 'HOST_CHECK',
+    'HOST_CHECK': 'HOST_CHECK',
+    'NMAP-PATH': 'NMAP_PATH',
+    'NMAP_PATH': 'NMAP_PATH',
+    'DEBUG': 'DEBUG',
+    'AUTO-UPDATE': 'AUTO_UPDATE_CHECK',
+    'AUTO_UPDATE_CHECK': 'AUTO_UPDATE_CHECK',
+}
+
+# Boolean settings that should be parsed as true/false
+BOOLEAN_KEYS = {'SERVICE_SCAN', 'HOST_CHECK', 'DEBUG', 'AUTO_UPDATE_CHECK'}
 
 def parse_bool(value):
     """Convert string boolean to 'true'/'false' for environment storage."""
@@ -22,7 +43,7 @@ def load_config(config_path):
     if not os.path.exists(config_path):
         print(f" [!] Config file not found: {config_path}")
         return False
-    
+
     print(f" [*] Loading configuration from: {config_path}")
     loaded = 0
     with open(config_path, 'r') as f:
@@ -33,19 +54,24 @@ def load_config(config_path):
             if '=' not in line:
                 print(f" [!] Line {line_num}: Ignoring malformed line (missing '='): {line}")
                 continue
-            
+
             key, value = line.split('=', 1)
-            key = key.strip().upper()
+            key_raw = key.strip().upper()
             value = value.strip()
-            
-            # Handle known boolean settings
-            if key in ('SERVICE_SCAN', 'HOST_CHECK'):
+
+            # Map config key to environment variable name
+            env_key = KEY_MAPPING.get(key_raw, key_raw)
+            if env_key != key_raw:
+                print(f" [*] Mapping '{key_raw}' -> '{env_key}'")
+
+            # Parse boolean values if applicable
+            if env_key in BOOLEAN_KEYS:
                 value = parse_bool(value)
-            
-            os.environ[key] = value
-            print(f" [+] {key} = {value}")
+
+            os.environ[env_key] = value
+            print(f" [+] {env_key} = {value}")
             loaded += 1
-    
+
     print(f" [*] Loaded {loaded} configuration entries.")
     return True
 
@@ -54,7 +80,7 @@ def load_zombie_config(config_path):
     if not os.path.exists(config_path):
         print(f" [!] Zombie config file not found: {config_path}")
         return False
-    
+
     print(f" [*] Loading zombie configuration from: {config_path}")
     loaded = 0
     with open(config_path, 'r') as f:
@@ -65,25 +91,25 @@ def load_zombie_config(config_path):
             if '=' not in line:
                 print(f" [!] Line {line_num}: Ignoring malformed line (missing '='): {line}")
                 continue
-            
+
             key, value = line.split('=', 1)
             key = key.strip().upper()
             value = value.strip()
-            
+
             if key in ('USERNAME', 'PASSWORD', 'ZOMBIE_IP'):
                 os.environ[key] = value
                 print(f" [+] {key} = {value}")
                 loaded += 1
             else:
                 print(f" [!] Line {line_num}: Unknown key '{key}' for zombie config, ignoring.")
-    
+
     if loaded > 0:
         os.environ['ZOMBIE'] = 'enabled'
         print(" [+] ZOMBIE = enabled")
     else:
         print(" [!] No valid zombie configuration entries found.")
         return False
-    
+
     print(f" [*] Loaded {loaded} zombie configuration entries.")
     return True
 
@@ -93,8 +119,8 @@ if __name__ == "__main__":
         load_config(sys.argv[1])
         print("\nCurrent environment variables:")
         for k, v in sorted(os.environ.items()):
-            if k in ('IP', 'SCAN_TYPE', 'FNAME', 'ZOMBIE', 'USERNAME', 'PASSWORD', 
-                     'ZOMBIE_IP', 'SERVICE_SCAN', 'HOST_CHECK'):
+            if k in ('IP', 'SCAN_TYPE', 'FNAME', 'ZOMBIE', 'USERNAME', 'PASSWORD',
+                     'ZOMBIE_IP', 'SERVICE_SCAN', 'HOST_CHECK', 'DEBUG', 'AUTO_UPDATE_CHECK', 'NMAP_PATH'):
                 print(f"  {k} = {v}")
     else:
         print("Usage: config_loader.py <config_file>")
