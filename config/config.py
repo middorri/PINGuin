@@ -1,7 +1,5 @@
 import os
 
-VERSION = "2.5.0"
-
 def get_ip():
     return os.environ.get('IP')
 
@@ -38,6 +36,3 @@ def get_zombie_ip():
 
 def is_auto_update_enabled():
     return os.environ.get('AUTO_UPDATE_CHECK', 'true').lower() == 'true'
-
-def get_version():
-    return os.environ.get('VERSION', 'unknown')

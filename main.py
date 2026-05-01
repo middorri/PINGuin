@@ -437,8 +437,8 @@ def main():
             print(f" [*] Debug mode is {'enabled' if os.environ.get('DEBUG', 'false') == 'true' else 'disabled'}")
         
         elif cmd == "version":
-            print(f" [*] PINGuin version: {config.get_version()}")
-            
+            print(f" [*] PINGuin version: 2.5.1")
+
         elif cmd == "status":
             print(f" [*] Current configuration:")
             print(f"     IP: {os.environ.get('IP', 'Not set')}")
