@@ -22,20 +22,21 @@ Automated reconnaissance tool for network scanning and enumeration.
 
 ## Installation
 
-```bash
+``` bash
 git clone https://github.com/middorri/PINGuin
 cd PINGuin
+```
 ## Usage
-```bash
 
-Run the main interface:
-bash
+
+## Run the main interface:
+``` bash
 
 python3 main.py
+```
+# Basic Commands
 
-Basic Commands
-
-In the PINGuin interface:
+### In the PINGuin interface:
 
     scan <ip> - Run network scan on target IP
 
@@ -49,7 +50,7 @@ In the PINGuin interface:
 
     exit - Quit the tool
 
-Set configuration:
+### Set configuration:
 
     set ip <address> - Set target IP
 
@@ -71,8 +72,8 @@ Set configuration:
 
     set auto-update - Enable/disable automatic update check (true/false)
 
-Examples
-
+## Examples
+``` bash
 Quick scan:
 
 $ python3 main.py
@@ -86,12 +87,12 @@ $ set ip 10.0.0.0/24
 $ set stype stealthy
 $ set fname my_scan_results
 $ scan
-
-Configuration File
+```
+## Configuration File
 
 Create a config file with settings:
 
-# config.txt
+## config.txt
 IP 192.168.1.100
 STYPE stealthy
 FNAME scan_results
