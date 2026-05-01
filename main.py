@@ -84,13 +84,13 @@ def check_for_updates(verbose=False):
     remote = get_remote_commit()
     if current and remote and current != remote:
         if verbose:
-            print(f"\n[!] Update available!")
+            print(f"\n [!] Update available!")
             print(f"    Current: {current[:7]}")
             print(f"    Latest : {remote[:7]}")
             print("    Run 'update' to pull the latest code.")
         return True
     if verbose and current and remote:
-        print("\n[*] PINGuin is up to date.")
+        print("\n [*] PINGuin is up to date.")
     return False
 
 def perform_update():
@@ -129,7 +129,7 @@ def perform_update():
             if pull_result.stdout:
                 print(pull_result.stdout)
             if stashed:
-                print("\n[*] Your local changes were stashed automatically.")
+                print("\n [*] Your local changes were stashed automatically.")
                 print("    To restore them, run: git stash pop")
                 print("    (Resolve any conflicts manually if they occur.)")
             return True
