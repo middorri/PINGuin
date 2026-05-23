@@ -64,7 +64,7 @@ def scan_single_ip(ip, folder_name):
     XML_OUT = ip_folder / "nmap_output.xml"
 
     # Aggressive nmap command
-    nmap_cmd = [resolve_nmap(), *nmap_unprivileged(), "-T4", "-sT", "--open", "-oX", str(XML_OUT), ip]
+    nmap_cmd = [resolve_nmap(), *nmap_unprivileged(), "-T4", "-sS", "--open", "-oX", str(XML_OUT), ip]
 
     print(f" [CMD]: {' '.join(nmap_cmd)}")
     # Merge stderr into stdout to avoid blocking on separate pipes
@@ -126,7 +126,7 @@ def scan_single_ip(ip, folder_name):
         print(f" [*] Starting service/version scans on {len(open_ports)} ports for {ip}...")
         for port in open_ports:
             nmap_out = ip_folder / f"nmap_port_{port}.xml"
-            nmap_2_cmd = [resolve_nmap(), *nmap_unprivileged(), "-sT", "-sV", "-p", str(port), "-oX", str(nmap_out), ip]
+            nmap_2_cmd = [resolve_nmap(), *nmap_unprivileged(), "-sS", "-sV", "-p", str(port), "-oX", str(nmap_out), ip]
             print(f" [NMAP] {ip} Port {port}: ", end="", flush=True)
 
             try:

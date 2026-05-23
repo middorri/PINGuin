@@ -349,7 +349,7 @@ def scan_single_tcp_port(ip, port, base_name, zombie=False):
         
     else:
         cmd = [
-            f"{nmap_path}", *nmap_unprivileged(), "-sT", "-p", str(port), "-T1", "--host-timeout", "30m",
+            f"{nmap_path}", *nmap_unprivileged(), "-sS", "-p", str(port), "-T1", "--host-timeout", "30m",
             "--max-rate", str(rate), "--scan-delay", f"{delay}s",
             "--max-retries", "3",
             *random_source_port(), *windows_fingerprint_flags(), *probe_encapsulation_flags(),
@@ -401,7 +401,7 @@ def scan(ip, port_range, duration, base_name):
         port_str = ",".join(str(p) for p in group)
 
         cmd = [
-            f"{nmap_path}", *nmap_unprivileged(), "-sT", "-p", str(port_str), "-T1", "--host-timeout", "30m",
+            f"{nmap_path}", *nmap_unprivileged(), "-sS", "-p", str(port_str), "-T1", "--host-timeout", "30m",
             "--max-rate", str(rate), "--scan-delay", f"{delay}s",
             "--max-retries", "3",
             *random_source_port(), *windows_fingerprint_flags(), *probe_encapsulation_flags(),
@@ -575,7 +575,7 @@ def run_scan_chain(ip, folder_name):
             ])
         else:
             cmd = [
-                f"{nmap_path}", *nmap_unprivileged(), "-sT", "-T1", "--max-rate", str(rate), "--scan-delay", f"{delay}s",
+                f"{nmap_path}", *nmap_unprivileged(), "-sS", "-T1", "--max-rate", str(rate), "--scan-delay", f"{delay}s",
                 "-sV", "--version-intensity", "5",
                 *random_source_port(), *windows_fingerprint_flags(), *probe_encapsulation_flags(),
                 "-p", ports_str, "-oA", f"{base}_tcp_service_versions", ip
