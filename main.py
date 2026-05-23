@@ -11,7 +11,7 @@ import sys
 import subprocess
 import config_loader, config
 
-os.environ['VERSION'] = "2.7.1"
+os.environ['VERSION'] = "2.8.0"
 
 def banner():
     """Display the PINGuin banner"""
