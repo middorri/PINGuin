@@ -110,23 +110,25 @@ ZOMBIE_USER <USERNAME>
 ZOMBIE_PASS <PASSWORD>
 ZOMBIE_IP <IP>
 
-Load it with: set config config.txt
-File Structure
+Load it with: `set config config.txt`
 
-├── main.py                 # Main interface
-├── config_loader.py        # Configuration loader
-├── config.py               # Configuration module
-├── setup.py                # run after downloading the repository
-├── requirements.txt        # what tools libs required for PINGuin to work properly        
-└── modules/
-    ├── aggressive/         # Fast, comprehensive scans
-    │   ├── network_scan.py
-    │   └── enumeration.py
-    └── stealthy/           # Slow, stealthy scans  
-        ├── network_scan.py
-        └── enumeration.py
-└── config
-    └── config_loader       # loads configs from config file
+## File Structure
+
+    ├── main.py
+    ├── config_loader.py
+    ├── config.py
+    ├── setup.py
+    ├── requirements.txt
+    ├── modules/
+    │   ├── aggressive/
+    │   │   ├── network_scan.py
+    │   │   └── enumeration.py
+    │   └── stealthy/
+    │       ├── network_scan.py
+    │       └── enumeration.py
+    └── config/
+        └── config_loader
+    
 Scan Types
 
 Aggressive:
