@@ -11,8 +11,8 @@ import sys
 import subprocess
 import config_loader, config
 
-os.environ['VERSION'] = "2.7.1"
-#added a comment to trigger a new commit for testing auto-update features
+os.environ['VERSION'] = "V-2.7.1"
+
 def banner():
     """Display the PINGuin banner"""
     os.system('cls' if sys.platform == 'win32' else 'clear')
