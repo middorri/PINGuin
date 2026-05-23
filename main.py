@@ -11,10 +11,12 @@ import sys
 import subprocess
 import config_loader, config
 
+os.environ['VERSION'] = "2.5.1"
+
 def banner():
     """Display the PINGuin banner"""
     os.system('clear')
-    print("""
+    print(f"""
     ██▓███   ██▓ ███▄    █   ▄████  █    ██  ██▓ ███▄    █ 
    ▓██░  ██▒▓██▒ ██ ▀█   █  ██▒ ▀█▒ ██  ▓██▒▓██▒ ██ ▀█   █ 
    ▓██░ ██▓▒▒██▒▓██  ▀█ ██▒▒██░▄▄▄░▓██  ▒██░▒██▒▓██  ▀█ ██▒
@@ -24,7 +26,7 @@ def banner():
    ░▒ ░      ▒ ░░ ░░   ░ ▒░  ░   ░ ░░▒░ ░ ░  ▒ ░░ ░░   ░ ▒░
    ░░        ▒ ░   ░   ░ ░ ░ ░   ░  ░░░ ░ ░  ▒ ░   ░   ░ ░ 
              ░           ░       ░    ░      ░           ░ 
-   PINGuin - Automated Recon Tool
+   PINGuin - Automated Recon Tool           Version: {os.environ.get('VERSION')}
     """)
 
 def check_zombie_ready(zombie_ip, user, password):
@@ -194,15 +196,28 @@ def main():
             print("   status       - Show current configuration status")
             print("   clear        - Clear the terminal screen")
             print("   exit         - Exit the tool")
-            print("\n Configuration attributes:")
-            print("   ip           - Set target IP address")
-            print("   stype        - Set type of scan (stealthy/aggressive)")
-            print("   fname        - Set folder name for results")
-            print("   config       - Set configuration file path")
-            print("   zombie       - Set zombie configuration file path/ USR/PASS/IP")
+            print("   ip           - Show current target IP")
+            print("   stype        - Show current scan type")
+            print("   fname        - Show results folder")
+            print("   service-scan - Show service scan status")
+            print("   host-check   - Show host up check status")
+            print("   nmap-path    - Show nmap path")
+            print("   debug        - Show debug mode status")
+            print("   version      - Show tool version")
+            print("   auto-update  - Show auto-update check status")
+            print("   update       - Pull latest code from git")
+            print("   update check - Check if an update exists without pulling")
+            print("   zombie status- Show zombie configuration")
+            print("   zombie check - Test zombie connectivity")
+            print("\n Configuration attributes (use 'set <attr> <value>'):")
+            print("   ip           - Target IP address")
+            print("   stype        - Scan type (stealthy/aggressive)")
+            print("   fname        - Folder name for results")
+            print("   config       - Path to configuration file")
+            print("   zombie       - Zombie config (user/pass/ip or config file)")
             print("   service-scan - Enable/disable service version scanning (true/false)")
-            print("   host-check   - Enable/disable host up check (true/false, default: true)")
-            print("   nmap-path    - Set custom path to nmap binary (if not in PATH)")
+            print("   host-check   - Enable/disable host up check (true/false)")
+            print("   nmap-path    - Custom path to nmap binary")
             print("   debug        - Enable/disable debug mode (true/false)")
             print("   auto-update  - Enable/disable automatic update check (true/false)")
             print("\n Usage: set <attribute> <value>")
@@ -437,10 +452,10 @@ def main():
             print(f" [*] Debug mode is {'enabled' if os.environ.get('DEBUG', 'false') == 'true' else 'disabled'}")
         
         elif cmd == "version":
-            print(f" [*] PINGuin version: 2.5.1")
+            return print(f" [*] PINGuin version: {os.environ.get('VERSION')}")
 
         elif cmd == "status":
-            print(f" [*] Current configuration:")
+            print(" [*] Current configuration:")
             print(f"     IP: {os.environ.get('IP', 'Not set')}")
             print(f"     Scan Type: {os.environ.get('SCAN_TYPE', 'Not set')}")
             print(f"     Results Folder: {os.environ.get('FNAME', 'Not set')}")
@@ -449,6 +464,15 @@ def main():
             print(f"     Nmap Path: {os.environ.get('NMAP_PATH', 'nmap (default)')}")
             print(f"     Debug Mode: {'enabled' if os.environ.get('DEBUG', 'false') == 'true' else 'disabled'}")
             print(f"     Auto Update Check: {'enabled' if os.environ.get('AUTO_UPDATE_CHECK', 'true') == 'true' else 'disabled'}")
+            # Zombie status
+            if os.environ.get('ZOMBIE') == 'enabled':
+                print("     Zombie Mode: enabled")
+                print(f"        Username: {os.environ.get('USERNAME', 'Not set')}")
+                print(f"        IP: {os.environ.get('ZOMBIE_IP', 'Not set')}")
+                # Password is hidden for security
+                print(f"        Password: {'*' * len(os.environ.get('PASSWORD', '')) if os.environ.get('PASSWORD') else 'Not set'}")
+            else:
+                print("     Zombie Mode: disabled")
         elif cmd == "auto-update":
             print(f" [*] Auto-update check is {'enabled' if os.environ.get('AUTO_UPDATE_CHECK', 'true') == 'true' else 'disabled'}")
 

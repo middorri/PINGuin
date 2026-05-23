@@ -36,41 +36,49 @@ python3 main.py
 ```
 # Basic Commands
 
-### In the PINGuin interface:
+## Interactive Shell Commands
 
-    scan <ip> - Run network scan on target IP
+Inside the PINGuin prompt (`$`), you can use the following commands:
 
-    enum <ip> - Run service enumeration on target IP
+| Command | Description |
+|---------|-------------|
+| `help` | Show all available commands and configuration attributes |
+| `scan <ip>` | Run network scan on target IP |
+| `enum <ip>` | Run service enumeration on target IP |
+| `full <ip>` | Run both scan and enumeration (full recon) |
+| `status` | Show current configuration (including zombie settings) |
+| `clear` | Clear the terminal screen and redisplay banner |
+| `exit` | Quit the tool |
+| `ip` | Show current target IP |
+| `stype` | Show current scan type (stealthy/aggressive) |
+| `fname` | Show results folder name |
+| `service-scan` | Show whether service version scanning is enabled |
+| `host-check` | Show whether host up check is enabled |
+| `nmap-path` | Show custom nmap path (if set) |
+| `debug` | Show debug mode status |
+| `version` | Display PINGuin version |
+| `auto-update` | Show auto‑update check status |
+| `update` | Pull the latest code from git (auto‑stashes local changes) |
+| `update check` | Check if an update exists without pulling |
+| `zombie status` | Show zombie configuration (username, IP, password hidden) |
+| `zombie check` | Test zombie connectivity and readiness |
 
-    status - Show current settings
+## Configuration Attributes (set command)
 
-    clear - Clear the terminal screen
+Use `set <attribute> <value>` to modify settings:
 
-    help - Show all commands
-
-    exit - Quit the tool
-
-### Set configuration:
-
-    set ip <address> - Set target IP
-
-    set stype <stealthy/aggressive> - Set scan type
-
-    set fname <folder> - Set results folder name
-
-    set config <file> - Load settings from config file
-
-    set zombie <config path>/<USR/PASS/IP> - set zombie credentials
-
-    set service_scan - Enable/disable service version scanning
-
-    set host_check - Enable/disable host up check
-
-    set nmap_path - Set custom path to nmap binary
-
-    set debug - Enable/disable debug mode
-
-    set auto-update - Enable/disable automatic update check (true/false)
+| Attribute | Description | Example |
+|-----------|-------------|---------|
+| `ip` | Target IP address | `set ip 192.168.1.10` |
+| `stype` | Scan type: `stealthy` or `aggressive` | `set stype aggressive` |
+| `fname` | Folder name for scan results | `set fname scan_results` |
+| `config` | Path to a configuration file | `set config my_config.ini` |
+| `zombie` | Set zombie credentials (user, password, ip) or load config file | `set zombie bob pass123 10.0.0.5` or `set zombie config /path/to/zombie.conf` |
+| `service-scan` | Enable/disable service version scanning (`true`/`false`) | `set service-scan true` |
+| `host-check` | Enable/disable host up check (`true`/`false`, default true) | `set host-check false` |
+| `nmap-path` | Custom path to nmap binary | `set nmap-path /usr/local/bin/nmap` |
+| `debug` | Enable/disable debug output (`true`/`false`) | `set debug true` |
+| `auto-update` | Enable/disable automatic update check at startup (`true`/`false`) | `set auto-update false` |
 
 ## Examples
 ``` bash
