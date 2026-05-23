@@ -11,11 +11,11 @@ import sys
 import subprocess
 import config_loader, config
 
-os.environ['VERSION'] = "2.5.1"
+os.environ['VERSION'] = "2.6.0"
 
 def banner():
     """Display the PINGuin banner"""
-    os.system('clear')
+    os.system('cls' if sys.platform == 'win32' else 'clear')
     print(f"""
     ██▓███   ██▓ ███▄    █   ▄████  █    ██  ██▓ ███▄    █ 
    ▓██░  ██▒▓██▒ ██ ▀█   █  ██▒ ▀█▒ ██  ▓██▒▓██▒ ██ ▀█   █ 
@@ -229,9 +229,10 @@ def main():
                 os.environ['IP'] = parts[1]
             elif os.environ.get('IP') is None:
                 os.environ['IP'] = input(" [?] Enter target IP: ")
-            subprocess.run(["sudo", "-n", "true"], check=False)
-            subprocess.run(["python3", f"{module}/network_scan.py"])
-        
+            if sys.platform != "win32":
+                subprocess.run(["sudo", "-n", "true"], check=False)
+            subprocess.run([sys.executable, f"{module}/network_scan.py"])
+
         elif cmd.startswith("enum"):
             parts = cmd.split()
             module = use_case()
@@ -239,9 +240,10 @@ def main():
                 os.environ['IP'] = parts[1]
             elif os.environ.get('IP') is None:
                 os.environ['IP'] = input(" [?] Enter target IP: ")
-            subprocess.run(["sudo", "-n", "true"], check=False)
-            subprocess.run(["python3", f"{module}/enumeration.py"])
-        
+            if sys.platform != "win32":
+                subprocess.run(["sudo", "-n", "true"], check=False)
+            subprocess.run([sys.executable, f"{module}/enumeration.py"])
+
         elif cmd.startswith("full"):
             parts = cmd.split()
             module = use_case()
@@ -249,9 +251,10 @@ def main():
                 os.environ['IP'] = parts[1]
             elif os.environ.get('IP') is None:
                 os.environ['IP'] = input(" [?] Enter target IP: ")
-            subprocess.run(["sudo", "-n", "true"], check=False)
-            subprocess.run(["python3", f"{module}/network_scan.py"])
-            subprocess.run(["python3", f"{module}/enumeration.py"])
+            if sys.platform != "win32":
+                subprocess.run(["sudo", "-n", "true"], check=False)
+            subprocess.run([sys.executable, f"{module}/network_scan.py"])
+            subprocess.run([sys.executable, f"{module}/enumeration.py"])
         
         elif cmd.startswith("set"):
             parts = cmd.split()
@@ -477,7 +480,7 @@ def main():
             print(f" [*] Auto-update check is {'enabled' if os.environ.get('AUTO_UPDATE_CHECK', 'true') == 'true' else 'disabled'}")
 
         elif cmd == "clear":
-            os.system('clear')
+            os.system('cls' if sys.platform == 'win32' else 'clear')
             banner()
 
 if __name__ == "__main__":
