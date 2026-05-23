@@ -99,13 +99,14 @@ def perform_update():
     """Perform a git pull, automatically stashing local changes if needed."""
     print("[*] Pulling latest code from git...")
     try:
-        # Check for uncommitted changes
-        status = subprocess.run(
-            ["git", " "],
-            capture_output=True, text=True, check=False
+        # Check for uncommitted changes using git diff-index
+        # Returns non‑zero exit code if there are changes
+        changes_check = subprocess.run(
+            ["git", "diff-index", "--quiet", "HEAD", "--"],
+            capture_output=False, check=False
         )
-        has_changes = bool(status.stdout.strip())
-        
+        has_changes = (changes_check.returncode != 0)
+
         stashed = False
         if has_changes:
             print("[*] Uncommitted changes detected. Stashing them automatically...")
@@ -119,13 +120,13 @@ def perform_update():
                 return False
             stashed = True
             print("[+] Changes stashed successfully.")
-        
+
         # Pull latest code (using --ff-only for safety)
         pull_result = subprocess.run(
             ["git", "pull", "--ff-only"],
             capture_output=True, text=True, check=False
         )
-        
+
         if pull_result.returncode == 0:
             print("[+] Update successful.")
             if pull_result.stdout:
@@ -143,13 +144,14 @@ def perform_update():
                 print("[*] Restoring your stashed changes...")
                 subprocess.run(["git", "stash", "pop"], capture_output=True)
             return False
-            
+
     except FileNotFoundError:
         print("[!] Git not found. Cannot update.")
         return False
     except Exception as e:
         print(f"[!] Unexpected error: {e}")
         return False
+    
 def use_case():
     """Return the module path for the given use case, prompting if needed"""
     case = os.environ.get('SCAN_TYPE')
