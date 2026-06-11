@@ -2,14 +2,13 @@
 """
 PINGuin - Automated Reconnaissance Tool
 Main entry point that coordinates all reconnaissance modules
-Features a pinned banner that stays visible during menu navigation
 """
 
 import argparse
 import os
 import sys
 import subprocess
-import config_loader, config
+import config_loader
 
 os.environ['VERSION'] = "2.9.0"
 
@@ -50,7 +49,6 @@ def check_zombie_ready(zombie_ip, user, password):
     return subprocess.call(ssh_cmd, shell=True)
 
 def get_current_commit():
-    """Return current commit hash, or None if not in a git repo."""
     try:
         result = subprocess.run(
             ["git", "rev-parse", "HEAD"],
@@ -63,9 +61,7 @@ def get_current_commit():
     return None
 
 def get_remote_commit():
-    """Return latest commit hash from remote (origin/HEAD), or None."""
     try:
-        # Fetch latest info from remote without merging
         subprocess.run(["git", "fetch", "--quiet"], check=False)
         result = subprocess.run(
             ["git", "rev-parse", "@{u}"],
@@ -78,10 +74,6 @@ def get_remote_commit():
     return None
 
 def check_for_updates(verbose=False):
-    """
-    Check if an update is available.
-    Returns True if update is available, False otherwise or on error.
-    """
     current = get_current_commit()
     remote = get_remote_commit()
     if current and remote and current != remote:
@@ -96,11 +88,8 @@ def check_for_updates(verbose=False):
     return False
 
 def perform_update():
-    """Perform a git pull, automatically stashing local changes if needed."""
     print("[*] Pulling latest code from git...")
     try:
-        # Check for uncommitted changes using git diff-index
-        # Returns non‑zero exit code if there are changes
         changes_check = subprocess.run(
             ["git", "diff-index", "--quiet", "HEAD", "--"],
             capture_output=False, check=False
@@ -121,7 +110,6 @@ def perform_update():
             stashed = True
             print("[+] Changes stashed successfully.")
 
-        # Pull latest code (using --ff-only for safety)
         pull_result = subprocess.run(
             ["git", "pull", "--ff-only"],
             capture_output=True, text=True, check=False
@@ -139,7 +127,6 @@ def perform_update():
         else:
             print("[!] Update failed. Output:")
             print(pull_result.stderr)
-            # If pull failed but we stashed, restore the stash
             if stashed:
                 print("[*] Restoring your stashed changes...")
                 subprocess.run(["git", "stash", "pop"], capture_output=True)
@@ -151,9 +138,8 @@ def perform_update():
     except Exception as e:
         print(f"[!] Unexpected error: {e}")
         return False
-    
+
 def use_case():
-    """Return the module path for the given use case, prompting if needed"""
     case = os.environ.get('SCAN_TYPE')
     if case == "stealthy":
         return "modules/stealthy"
@@ -172,16 +158,15 @@ def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-c", "--config", help="Path to configuration file", type=str)
-    parser.add_argument("--debug", action="store_true", help="Enable debug output (verbose nmap commands, subprocess output, etc.)")
+    parser.add_argument("--debug", action="store_true", help="Enable debug output")
 
     args = parser.parse_args()
     if args.config:
         config_loader.load_config(args.config)
-    
+
     if args.debug:
         os.environ['DEBUG'] = "true"
 
-    # Auto‑update check (if enabled)
     if os.environ.get('AUTO_UPDATE_CHECK', 'true').lower() == 'true':
         check_for_updates(verbose=True)
 
@@ -205,7 +190,6 @@ def main():
             print("   host-check   - Show host up check status")
             print("   nmap-path    - Show nmap path")
             print("   debug        - Show debug mode status")
-            print("   decoys       - Show decoy configuration status")
             print("   version      - Show tool version")
             print("   auto-update  - Show auto-update check status")
             print("   update       - Pull latest code from git")
@@ -223,10 +207,9 @@ def main():
             print("   host-check   - Enable/disable host up check (true/false)")
             print("   nmap-path    - Custom path to nmap binary")
             print("   debug        - Enable/disable debug mode (true/false)")
-            print("   decoys       - enable/disable/ips <list>/auto")
             print("   auto-update  - Enable/disable automatic update check (true/false)")
             print("\n Usage: set <attribute> <value>")
-        
+
         elif cmd.startswith("scan"):
             parts = cmd.split()
             module = use_case()
@@ -260,7 +243,7 @@ def main():
                 subprocess.run(["sudo", "-n", "true"], check=False)
             subprocess.run([sys.executable, f"{module}/network_scan.py"])
             subprocess.run([sys.executable, f"{module}/enumeration.py"])
-        
+
         elif cmd.startswith("set"):
             parts = cmd.split()
             if len(parts) < 2:
@@ -273,7 +256,7 @@ def main():
                     else:
                         os.environ['IP'] = input(" [?] Enter IP: ")
                     print(f" [+] IP set to {os.environ['IP']}")
-                
+
                 elif attr == "tports":
                     if len(parts) >= 3:
                         value = parts[2]
@@ -292,19 +275,19 @@ def main():
                     else:
                         os.environ['SCAN_TYPE'] = choice
                         print(f" [+] Scan type set to {choice}")
-                
+
                 elif attr == "fname":
                     if len(parts) >= 3:
                         os.environ['FNAME'] = parts[2]
                     else:
                         os.environ['FNAME'] = input(" [?] Enter folder name: ")
                     print(f" [+] Results folder set to {os.environ['FNAME']}")
-                
+
                 elif attr == "config":
                     if len(parts) >= 3:
                         config_file = parts[2]
                         config_loader.load_config(config_file)
-                
+
                 elif attr == "zombie":
                     os.environ['ZOMBIE'] = "enabled"
                     zombie_args = parts[2:]
@@ -339,7 +322,7 @@ def main():
                         os.environ['ZOMBIE'] = "enabled"
                         continue
                     print("[-] Invalid zombie syntax")
-                
+
                 elif attr == "service-scan":
                     if len(parts) >= 3:
                         choice = parts[2].lower()
@@ -353,7 +336,7 @@ def main():
                         print(" [+] Service scan disabled")
                     else:
                         print(" [!] Invalid choice.")
-                
+
                 elif attr == "host-check":
                     if len(parts) >= 3:
                         choice = parts[2].lower()
@@ -367,14 +350,14 @@ def main():
                         print(" [+] Host up check will be skipped")
                     else:
                         print(" [!] Invalid choice.")
-                
+
                 elif attr == "nmap-path":
                     if len(parts) >= 3:
                         os.environ['NMAP_PATH'] = parts[2]
                     else:
                         os.environ['NMAP_PATH'] = input(" [?] Enter custom nmap path: ")
                     print(f" [+] Nmap path set to {os.environ['NMAP_PATH']}")
-                
+
                 elif attr == "debug":
                     if len(parts) >= 3:
                         choice = parts[2].lower()
@@ -388,30 +371,6 @@ def main():
                         print(" [+] Debug mode disabled")
                     else:
                         print(" [!] Invalid choice.")
-
-                elif attr == "decoys":
-                    if len(parts) < 3:
-                        print(" Usage: set decoys enable|disable|ips <list>|auto")
-                    else:
-                        subcmd = parts[2].lower()
-                        if subcmd == "enable":
-                            os.environ['ENABLE_DECOYS'] = 'true'
-                            print(" [+] Decoy mode enabled (will take effect on next scan)")
-                        elif subcmd == "disable":
-                            os.environ['ENABLE_DECOYS'] = 'false'
-                            print(" [+] Decoy mode disabled")
-                        elif subcmd == "ips" and len(parts) >= 4:
-                            ip_list = parts[3]
-                            os.environ['DECOY_IPS'] = ip_list
-                            os.environ['ENABLE_DECOYS'] = 'true'
-                            print(f" [+] Decoy IPs set to: {ip_list}")
-                        elif subcmd == "auto":
-                            if 'DECOY_IPS' in os.environ:
-                                del os.environ['DECOY_IPS']
-                            os.environ['ENABLE_DECOYS'] = 'true'
-                            print(" [+] Decoy IPs set to auto-generated random public IPs")
-                        else:
-                            print(" Usage: set decoys enable|disable|ips <ip1,ip2,...>|auto")
 
                 elif attr == "auto-update":
                     if len(parts) >= 3:
@@ -430,15 +389,13 @@ def main():
         elif cmd.startswith("update"):
             parts = cmd.split()
             if len(parts) == 1:
-                # Manual update: pull the latest code
                 perform_update()
             elif len(parts) == 2 and parts[1] == "check":
-                # Just check for updates
                 check_for_updates(verbose=True)
             else:
                 print(" Usage: update          - Pull latest code from git")
                 print("        update check    - Check if an update exists without pulling")
-        
+
         elif cmd.startswith("zombie"):
             parts = cmd.split()
             if len(parts) < 2:
@@ -466,16 +423,16 @@ def main():
                             print(f" [!] Zombie check failed with code {ready}.")
                     else:
                         print(" [!] Zombie configuration is not set.")
-        
+
         elif cmd == "ip":
             print(f" [*] Current IP: {os.environ.get('IP', 'Not set')}")
-        
+
         elif cmd == "tports":
             print(f" [*] TPORTS: {os.environ.get('TPORTS', 'Not set (use Shodan)')}")
 
         elif cmd == "stype":
             print(f" [*] Current scan type: {os.environ.get('SCAN_TYPE', 'Not set')}")
-        
+
         elif cmd == "fname":
             fname = os.environ.get('FNAME')
             if fname and not os.path.exists(f"{fname}"):
@@ -484,29 +441,15 @@ def main():
 
         elif cmd == "service-scan":
             print(f" [*] Service scan is {'enabled' if os.environ.get('SERVICE_SCAN', 'true') == 'true' else 'disabled'}")
-        
+
         elif cmd == "host-check":
             print(f" [*] Host up check is {'enabled' if os.environ.get('HOST_CHECK', 'true') == 'true' else 'disabled'}")
 
         elif cmd == "nmap-path":
             print(f" [*] Current nmap path: {os.environ.get('NMAP_PATH', 'nmap (default)')}")
-        
+
         elif cmd == "debug":
             print(f" [*] Debug mode is {'enabled' if os.environ.get('DEBUG', 'false') == 'true' else 'disabled'}")
-        
-        elif cmd == "decoys":
-            enabled = os.environ.get('ENABLE_DECOYS', 'true')
-            ips = os.environ.get('DECOY_IPS', '')
-            print(f" [*] Decoy mode: {'enabled' if enabled == 'true' else 'disabled'}")
-            if ips:
-                print(f" [*] Decoy IPs: {ips}")
-            else:
-                print(" [*] Decoy IPs: (auto-generated random public IPs)")
-            # Also show if raw socket is available (Linux+root)
-            if sys.platform.startswith('linux') and os.geteuid() == 0:
-                print(" [*] Raw socket available: yes (decoys will work)")
-            else:
-                print(" [*] Raw socket available: no (decoys will be disabled during scan)")
 
         elif cmd == "version":
             print(f" [*] PINGuin version: {os.environ.get('VERSION')}")
@@ -521,24 +464,15 @@ def main():
             print(f"     Host Check: {'enabled' if os.environ.get('HOST_CHECK', 'true') == 'true' else 'disabled'}")
             print(f"     Nmap Path: {os.environ.get('NMAP_PATH', 'nmap (default)')}")
             print(f"     Debug Mode: {'enabled' if os.environ.get('DEBUG', 'false') == 'true' else 'disabled'}")
-            # Decoy status
-            decoy_enabled = os.environ.get('ENABLE_DECOYS', 'true')
-            decoy_ips = os.environ.get('DECOY_IPS', '')
-            print(f"     Decoy Mode: {'enabled' if decoy_enabled == 'true' else 'disabled'}")
-            if decoy_ips:
-                print(f"     Decoy IPs: {decoy_ips}")
-            else:
-                print("     Decoy IPs: (auto-generated random)")
             print(f"     Auto Update Check: {'enabled' if os.environ.get('AUTO_UPDATE_CHECK', 'true') == 'true' else 'disabled'}")
-            # Zombie status
             if os.environ.get('ZOMBIE') == 'enabled':
                 print("     Zombie Mode: enabled")
                 print(f"        Username: {os.environ.get('USERNAME', 'Not set')}")
                 print(f"        IP: {os.environ.get('ZOMBIE_IP', 'Not set')}")
-                # Password is hidden for security
                 print(f"        Password: {'*' * len(os.environ.get('PASSWORD', '')) if os.environ.get('PASSWORD') else 'Not set'}")
             else:
                 print("     Zombie Mode: disabled")
+
         elif cmd == "auto-update":
             print(f" [*] Auto-update check is {'enabled' if os.environ.get('AUTO_UPDATE_CHECK', 'true') == 'true' else 'disabled'}")
 

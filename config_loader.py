@@ -3,7 +3,6 @@
 PINGuin - Configuration Loader
 Loads settings from a config file and sets environment variables.
 Supports key=value format, with boolean values (true/false) stored as strings.
-Now supports all configuration attributes including auto-update and decoys.
 """
 
 import os
@@ -24,14 +23,10 @@ KEY_MAPPING = {
     'DEBUG': 'DEBUG',
     'AUTO-UPDATE': 'AUTO_UPDATE_CHECK',
     'AUTO_UPDATE_CHECK': 'AUTO_UPDATE_CHECK',
-    'ENABLE-DECOYS': 'ENABLE_DECOYS',      # new
-    'ENABLE_DECOYS': 'ENABLE_DECOYS',      # new
-    'DECOY-IPS': 'DECOY_IPS',              # new
-    'DECOY_IPS': 'DECOY_IPS',              # new
 }
 
 # Boolean settings that should be parsed as true/false
-BOOLEAN_KEYS = {'SERVICE_SCAN', 'HOST_CHECK', 'DEBUG', 'AUTO_UPDATE_CHECK', 'ENABLE_DECOYS'}
+BOOLEAN_KEYS = {'SERVICE_SCAN', 'HOST_CHECK', 'DEBUG', 'AUTO_UPDATE_CHECK'}
 
 def parse_bool(value):
     """Convert string boolean to 'true'/'false' for environment storage."""
@@ -117,7 +112,6 @@ def load_zombie_config(config_path):
     print(f" [*] Loaded {loaded} zombie configuration entries.")
     return True
 
-# If run directly, test loading a config file
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         load_config(sys.argv[1])
@@ -125,7 +119,7 @@ if __name__ == "__main__":
         for k, v in sorted(os.environ.items()):
             if k in ('IP', 'SCAN_TYPE', 'FNAME', 'ZOMBIE', 'USERNAME', 'PASSWORD',
                      'ZOMBIE_IP', 'SERVICE_SCAN', 'HOST_CHECK', 'DEBUG', 'AUTO_UPDATE_CHECK',
-                     'NMAP_PATH', 'ENABLE_DECOYS', 'DECOY_IPS'):
+                     'NMAP_PATH'):
                 print(f"  {k} = {v}")
     else:
         print("Usage: config_loader.py <config_file>")
