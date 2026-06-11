@@ -214,15 +214,6 @@ def _is_host_up_windows(ip):
 def is_host_up(ip):
     if sys.platform == "win32":
         return _is_host_up_windows(ip)
-    # Use nmap -sn with decoy flag (already done) AND send decoy ICMP echoes
-    if ENABLE_DECOYS:
-        try:
-            raw_sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP)
-            for decoy in DECOY_IPS:
-                send_icmp_echo(decoy, ip, sock=raw_sock)
-            raw_sock.close()
-        except Exception:
-            pass
     with tempfile.NamedTemporaryFile(delete=False, suffix=".xml") as tmp:
         xml_output = tmp.name
     nmap_path = resolve_nmap()
@@ -331,6 +322,18 @@ def probe_single_tcp_port(ip, port, base_name):
     finally:
         sock.close()
 
+def human_delay(mean_seconds=8, max_seconds=30, shape=0.8):
+    try:
+        sigma = shape
+        mu = math.log(mean_seconds) - (sigma ** 2) / 2
+        val = random.lognormvariate(mu, sigma)
+        return min(max_seconds, max(2.0, val))
+    except AttributeError:
+        alpha = shape + 0.7
+        scale = mean_seconds * (alpha - 1) / alpha
+        val = random.paretovariate(alpha) * scale
+        return min(max_seconds, max(2.0, val))
+    
 def scan(ip, port_range, duration, base_name):
     """Perform chunked TCP connect scan over a port range (used when Shodan returns nothing)"""
     delay = random.randint(3, 10)
@@ -424,7 +427,7 @@ def run_scan_chain(ip, folder_name):
             return
         
     random.shuffle(open_ports)
-    print(f" [*] Scanning {len(open_ports)} ports with {'decoy' if ENABLE_DECOYS else 'normal'} TCP probes")
+    print(f" [*] Scanning {len(open_ports)} ports with TCP probes")
     tcp_open_ports = []
     for idx, port in enumerate(open_ports, 1):
         print(f"\n [*] Port {idx}/{len(open_ports)}: {port}")
@@ -692,7 +695,6 @@ def scan_single_ip(ip, folder_name):
 def main():
     global DEBUG
     DEBUG = os.environ.get('DEBUG', 'false').lower() == 'true'
-    init_decoy_config()
     ip = os.environ.get("IP")
     if not ip:
         ip = input(" [?] Enter target IP or CIDR: ").strip()
