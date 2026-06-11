@@ -196,7 +196,7 @@ def main():
             print("   update check - Check if an update exists without pulling")
             print("   zombie status- Show zombie configuration")
             print("   zombie check - Test zombie connectivity")
-            print("   shodan-skip-scan - Show/set whether to skip scanning if Shodan has data")
+            print("   passive-scan - Show/set whether to perform passive scanning")
             print("\n Configuration attributes (use 'set <attr> <value>'):")
             print("   ip           - Target IP address")
             print("   tports       - Target ports (common|all|80,443,22)")
@@ -209,7 +209,7 @@ def main():
             print("   nmap-path    - Custom path to nmap binary")
             print("   debug        - Enable/disable debug mode (true/false)")
             print("   auto-update  - Enable/disable automatic update check (true/false)")
-            print("   shodan-skip-scan - Skip scanning when Shodan has data (true/false)")
+            print("   passive-scan - Enable/disable passive scanning (true/false)")
             print("\n Usage: set <attribute> <value>")
 
         elif cmd.startswith("scan"):
@@ -388,17 +388,17 @@ def main():
                     else:
                         print(" [!] Invalid choice.")
 
-                elif attr == "shodan-skip-scan":
+                elif attr == "passive-scan":
                     if len(parts) >= 3:
                         choice = parts[2].lower()
                     else:
-                        choice = input(" [?] Skip scanning when Shodan has data? (true/false, default true): ").lower()
+                        choice = input(" [?] Enable passive scanning? (true/false, default true): ").lower()
                     if choice in ["true", "t"]:
-                        os.environ['SHODAN_SKIP_SCAN'] = 'true'
-                        print(" [+] Shodan skip-scan mode enabled (will not scan if Shodan has info)")
+                        os.environ['PASSIVE_SCAN'] = 'true'
+                        print(" [+] Passive scanning enabled")
                     elif choice in ["false", "f"]:
-                        os.environ['SHODAN_SKIP_SCAN'] = 'false'
-                        print(" [+] Shodan skip-scan mode disabled (will scan even if Shodan has info)")
+                        os.environ['PASSIVE_SCAN'] = 'false'
+                        print(" [+] Passive scanning disabled")
                     else:
                         print(" [!] Invalid choice.")
 
@@ -467,6 +467,9 @@ def main():
         elif cmd == "debug":
             print(f" [*] Debug mode is {'enabled' if os.environ.get('DEBUG', 'false') == 'true' else 'disabled'}")
 
+        elif cmd == "passive-scan":
+            print(f" [*] Passive scan is {'enabled' if os.environ.get('PASSIVE_SCAN', 'true') == 'true' else 'disabled'}")
+
         elif cmd == "version":
             print(f" [*] PINGuin version: {os.environ.get('VERSION')}")
 
@@ -481,7 +484,7 @@ def main():
             print(f"     Nmap Path: {os.environ.get('NMAP_PATH', 'nmap (default)')}")
             print(f"     Debug Mode: {'enabled' if os.environ.get('DEBUG', 'false') == 'true' else 'disabled'}")
             print(f"     Auto Update Check: {'enabled' if os.environ.get('AUTO_UPDATE_CHECK', 'true') == 'true' else 'disabled'}")
-            print(f"     Shodan Skip Scan: {'enabled' if os.environ.get('SHODAN_SKIP_SCAN', 'true') == 'true' else 'disabled'}")
+            print(f"     Passive Scan: {'enabled' if os.environ.get('PASSIVE_SCAN', 'true') == 'true' else 'disabled'}")
             if os.environ.get('ZOMBIE') == 'enabled':
                 print("     Zombie Mode: enabled")
                 print(f"        Username: {os.environ.get('USERNAME', 'Not set')}")
@@ -493,9 +496,9 @@ def main():
         elif cmd == "auto-update":
             print(f" [*] Auto-update check is {'enabled' if os.environ.get('AUTO_UPDATE_CHECK', 'true') == 'true' else 'disabled'}")
 
-        elif cmd == "shodan-skip-scan":
-            val = os.environ.get('SHODAN_SKIP_SCAN', 'true')
-            print(f" [*] Shodan skip-scan is {'enabled' if val == 'true' else 'disabled'}")
+        elif cmd == "passive-scan":
+            val = os.environ.get('PASSIVE_SCAN', 'true')
+            print(f" [*] Passive scan is {'enabled' if val == 'true' else 'disabled'}")
 
         elif cmd == "clear":
             os.system('cls' if sys.platform == 'win32' else 'clear')

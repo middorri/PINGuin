@@ -159,7 +159,7 @@ def shodan_scan():
         return None
 
 def pretty_print_shodan_data(data):
-    """Display Shodan information in a clear, structured format."""
+    """Display Shodan information in a clear, structured format (ASCII only)."""
     if not data:
         return
     print("\n" + "=" * 60)
@@ -169,37 +169,43 @@ def pretty_print_shodan_data(data):
     # Ports
     ports = data.get('ports', [])
     if ports:
-        print(f"\n 🔓 Open Ports ({len(ports)}):")
+        print(f"\n >> Open Ports ({len(ports)}):")
         for port in sorted(ports):
-            print(f"    • {port}/tcp")
+            print(f"    - {port}/tcp")
     else:
-        print("\n ℹ️  No known open ports in Shodan database.")
+        print("\n >> No known open ports in Shodan database.")
 
     # Hostnames
     hostnames = data.get('hostnames', [])
     if hostnames:
-        print("\n 🌐 Hostnames:")
+        print("\n >> Hostnames:")
         for hn in hostnames:
-            print(f"    • {hn}")
+            print(f"    - {hn}")
 
-    # Vulnerabilities
+    # Vulnerabilities - can be dict or list
     vulns = data.get('vulns', {})
     if vulns:
-        print(f"\n ⚠️  Known Vulnerabilities ({len(vulns)}):")
-        for cve, info in vulns.items():
-            print(f"    • {cve}")
-            if isinstance(info, dict) and 'summary' in info:
-                print(f"      {info['summary'][:120]}...")
+        print(f"\n >> Known Vulnerabilities ({len(vulns)}):")
+        if isinstance(vulns, dict):
+            for cve, info in vulns.items():
+                print(f"    - {cve}")
+                if isinstance(info, dict) and 'summary' in info:
+                    print(f"      {info['summary'][:120]}...")
+        elif isinstance(vulns, list):
+            for cve in vulns:
+                print(f"    - {cve}")
+        else:
+            print(f"    {vulns}")   # fallback
     else:
-        print("\n ✅ No known vulnerabilities in Shodan database.")
+        print("\n >> No known vulnerabilities in Shodan database.")
 
     # Other metadata
     if 'cpes' in data and data['cpes']:
-        print("\n 📦 Detected Software (CPE):")
-        for cpe in data['cpes'][:5]:   # limit to 5
-            print(f"    • {cpe}")
+        print("\n >> Detected Software (CPE):")
+        for cpe in data['cpes'][:5]:
+            print(f"    - {cpe}")
     if 'tags' in data and data['tags']:
-        print("\n 🏷️  Tags:")
+        print("\n >> Tags:")
         print("    " + ", ".join(data['tags']))
 
     print("\n" + "=" * 60)
@@ -454,11 +460,11 @@ def run_scan_chain(ip, folder_name):
     base = f"{ip_folder}/port"
     zombie_mode = os.environ.get('ZOMBIE') == 'enabled'
     service_scan_enabled = os.environ.get('SERVICE_SCAN', 'true').lower() == 'true'
-    shodan_skip_scan = os.environ.get('SHODAN_SKIP_SCAN', 'true').lower() == 'true'
+    passive_scan = os.environ.get('PASSIVE_SCAN', 'true').lower() == 'true'
 
     # --- Shodan lookup first ---
     shodan_data = shodan_scan()
-    if shodan_data and shodan_skip_scan:
+    if shodan_data and passive_scan:
         pretty_print_shodan_data(shodan_data)
         # Save the Shodan output for later reference
         with open(ip_folder / "shodan_info.json", "w") as f:

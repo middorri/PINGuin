@@ -23,12 +23,12 @@ KEY_MAPPING = {
     'DEBUG': 'DEBUG',
     'AUTO-UPDATE': 'AUTO_UPDATE_CHECK',
     'AUTO_UPDATE_CHECK': 'AUTO_UPDATE_CHECK',
-    'SHODAN-SKIP-SCAN': 'SHODAN_SKIP_SCAN',
-    'SHODAN_SKIP_SCAN': 'SHODAN_SKIP_SCAN',
+    'PASSIVE-SCAN': 'PASSIVE_SCAN',
+    'PASSIVE_SCAN': 'PASSIVE_SCAN',
 }
 
 # Boolean settings that should be parsed as true/false
-BOOLEAN_KEYS = {'SERVICE_SCAN', 'HOST_CHECK', 'DEBUG', 'AUTO_UPDATE_CHECK', 'SHODAN_SKIP_SCAN'}
+BOOLEAN_KEYS = {'SERVICE_SCAN', 'HOST_CHECK', 'DEBUG', 'AUTO_UPDATE_CHECK', 'PASSIVE_SCAN'}
 
 def parse_bool(value):
     """Convert string boolean to 'true'/'false' for environment storage."""
@@ -121,7 +121,7 @@ if __name__ == "__main__":
         for k, v in sorted(os.environ.items()):
             if k in ('IP', 'SCAN_TYPE', 'FNAME', 'ZOMBIE', 'USERNAME', 'PASSWORD',
                      'ZOMBIE_IP', 'SERVICE_SCAN', 'HOST_CHECK', 'DEBUG', 'AUTO_UPDATE_CHECK',
-                     'NMAP_PATH', 'SHODAN_SKIP_SCAN'):
+                     'NMAP_PATH', 'PASSIVE_SCAN'):
                 print(f"  {k} = {v}")
     else:
         print("Usage: config_loader.py <config_file>")
