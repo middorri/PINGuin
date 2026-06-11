@@ -11,7 +11,7 @@ import sys
 import subprocess
 import config_loader, config
 
-os.environ['VERSION'] = "2.8.0"
+os.environ['VERSION'] = "2.9.0"
 
 def banner():
     """Display the PINGuin banner"""
@@ -205,6 +205,7 @@ def main():
             print("   host-check   - Show host up check status")
             print("   nmap-path    - Show nmap path")
             print("   debug        - Show debug mode status")
+            print("   decoys       - Show decoy configuration status")
             print("   version      - Show tool version")
             print("   auto-update  - Show auto-update check status")
             print("   update       - Pull latest code from git")
@@ -213,6 +214,7 @@ def main():
             print("   zombie check - Test zombie connectivity")
             print("\n Configuration attributes (use 'set <attr> <value>'):")
             print("   ip           - Target IP address")
+            print("   tports       - Target ports (common|all|80,443,22)")
             print("   stype        - Scan type (stealthy/aggressive)")
             print("   fname        - Folder name for results")
             print("   config       - Path to configuration file")
@@ -221,6 +223,7 @@ def main():
             print("   host-check   - Enable/disable host up check (true/false)")
             print("   nmap-path    - Custom path to nmap binary")
             print("   debug        - Enable/disable debug mode (true/false)")
+            print("   decoys       - enable/disable/ips <list>/auto")
             print("   auto-update  - Enable/disable automatic update check (true/false)")
             print("\n Usage: set <attribute> <value>")
         
@@ -271,7 +274,15 @@ def main():
                         os.environ['IP'] = input(" [?] Enter IP: ")
                     print(f" [+] IP set to {os.environ['IP']}")
                 
-                elif attr in ("stype", "use_case"):
+                elif attr == "tports":
+                    if len(parts) >= 3:
+                        value = parts[2]
+                        os.environ['TPORTS'] = value
+                        print(f" [+] TPORTS set to {value}")
+                    else:
+                        print(" Usage: set tports common|all|80,443,22")
+
+                elif attr in ("stype"):
                     if len(parts) >= 3:
                         choice = parts[2]
                     else:
@@ -378,6 +389,30 @@ def main():
                     else:
                         print(" [!] Invalid choice.")
 
+                elif attr == "decoys":
+                    if len(parts) < 3:
+                        print(" Usage: set decoys enable|disable|ips <list>|auto")
+                    else:
+                        subcmd = parts[2].lower()
+                        if subcmd == "enable":
+                            os.environ['ENABLE_DECOYS'] = 'true'
+                            print(" [+] Decoy mode enabled (will take effect on next scan)")
+                        elif subcmd == "disable":
+                            os.environ['ENABLE_DECOYS'] = 'false'
+                            print(" [+] Decoy mode disabled")
+                        elif subcmd == "ips" and len(parts) >= 4:
+                            ip_list = parts[3]
+                            os.environ['DECOY_IPS'] = ip_list
+                            os.environ['ENABLE_DECOYS'] = 'true'
+                            print(f" [+] Decoy IPs set to: {ip_list}")
+                        elif subcmd == "auto":
+                            if 'DECOY_IPS' in os.environ:
+                                del os.environ['DECOY_IPS']
+                            os.environ['ENABLE_DECOYS'] = 'true'
+                            print(" [+] Decoy IPs set to auto-generated random public IPs")
+                        else:
+                            print(" Usage: set decoys enable|disable|ips <ip1,ip2,...>|auto")
+
                 elif attr == "auto-update":
                     if len(parts) >= 3:
                         choice = parts[2].lower()
@@ -435,6 +470,9 @@ def main():
         elif cmd == "ip":
             print(f" [*] Current IP: {os.environ.get('IP', 'Not set')}")
         
+        elif cmd == "tports":
+            print(f" [*] TPORTS: {os.environ.get('TPORTS', 'Not set (use Shodan)')}")
+
         elif cmd == "stype":
             print(f" [*] Current scan type: {os.environ.get('SCAN_TYPE', 'Not set')}")
         
@@ -456,18 +494,41 @@ def main():
         elif cmd == "debug":
             print(f" [*] Debug mode is {'enabled' if os.environ.get('DEBUG', 'false') == 'true' else 'disabled'}")
         
+        elif cmd == "decoys":
+            enabled = os.environ.get('ENABLE_DECOYS', 'true')
+            ips = os.environ.get('DECOY_IPS', '')
+            print(f" [*] Decoy mode: {'enabled' if enabled == 'true' else 'disabled'}")
+            if ips:
+                print(f" [*] Decoy IPs: {ips}")
+            else:
+                print(" [*] Decoy IPs: (auto-generated random public IPs)")
+            # Also show if raw socket is available (Linux+root)
+            if sys.platform.startswith('linux') and os.geteuid() == 0:
+                print(" [*] Raw socket available: yes (decoys will work)")
+            else:
+                print(" [*] Raw socket available: no (decoys will be disabled during scan)")
+
         elif cmd == "version":
             print(f" [*] PINGuin version: {os.environ.get('VERSION')}")
 
         elif cmd == "status":
             print(" [*] Current configuration:")
             print(f"     IP: {os.environ.get('IP', 'Not set')}")
+            print(f"     TPORTS: {os.environ.get('TPORTS', 'Not set (use Shodan)')}")
             print(f"     Scan Type: {os.environ.get('SCAN_TYPE', 'Not set')}")
             print(f"     Results Folder: {os.environ.get('FNAME', 'Not set')}")
             print(f"     Service Scan: {'enabled' if os.environ.get('SERVICE_SCAN', 'true') == 'true' else 'disabled'}")
             print(f"     Host Check: {'enabled' if os.environ.get('HOST_CHECK', 'true') == 'true' else 'disabled'}")
             print(f"     Nmap Path: {os.environ.get('NMAP_PATH', 'nmap (default)')}")
             print(f"     Debug Mode: {'enabled' if os.environ.get('DEBUG', 'false') == 'true' else 'disabled'}")
+            # Decoy status
+            decoy_enabled = os.environ.get('ENABLE_DECOYS', 'true')
+            decoy_ips = os.environ.get('DECOY_IPS', '')
+            print(f"     Decoy Mode: {'enabled' if decoy_enabled == 'true' else 'disabled'}")
+            if decoy_ips:
+                print(f"     Decoy IPs: {decoy_ips}")
+            else:
+                print("     Decoy IPs: (auto-generated random)")
             print(f"     Auto Update Check: {'enabled' if os.environ.get('AUTO_UPDATE_CHECK', 'true') == 'true' else 'disabled'}")
             # Zombie status
             if os.environ.get('ZOMBIE') == 'enabled':
