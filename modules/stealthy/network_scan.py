@@ -22,6 +22,7 @@ import socket
 import struct
 import threading
 import math
+import json          # added for Shodan output
 
 # ---------------------------
 # Global flags & config
@@ -131,18 +132,79 @@ def run_cmd(cmd, **kwargs):
     return result
 
 def shodan_scan():
-    """Perform a quick Shodan scan to gather basic info about the target IP"""
+    """
+    Query Shodan (InternetDB) for information about the target IP.
+    Returns:
+        dict containing full JSON response if successful and IP is known,
+        None if the request fails or the API returns no useful data.
+    """
     ip = os.environ.get("IP")
     if not ip:
-        print(" [!] IP environment variable not set")
-        return []
+        debug_print(" [!] IP environment variable not set")
+        return None
     try:
-        host = requests.get(f"https://internetdb.shodan.io/{ip}").json()
-        debug_print(host)
-        return host.get("ports", [])
+        response = requests.get(f"https://internetdb.shodan.io/{ip}", timeout=10)
+        if response.status_code != 200:
+            debug_print(f" [!] Shodan returned status {response.status_code}")
+            return None
+        data = response.json()
+        # If the response is minimal (only 'ip') and no other fields, consider it empty
+        if not data or len(data) <= 1 and 'ip' in data:
+            debug_print(" [*] Shodan has no information for this IP")
+            return None
+        debug_print(f" [*] Shodan data received: {data}")
+        return data
     except Exception as e:
-        print(f" [!] Shodan scan failed: {e}")
-        return []
+        debug_print(f" [!] Shodan scan failed: {e}")
+        return None
+
+def pretty_print_shodan_data(data):
+    """Display Shodan information in a clear, structured format."""
+    if not data:
+        return
+    print("\n" + "=" * 60)
+    print(f" Shodan Intelligence for {data.get('ip', 'Unknown IP')}")
+    print("=" * 60)
+
+    # Ports
+    ports = data.get('ports', [])
+    if ports:
+        print(f"\n 🔓 Open Ports ({len(ports)}):")
+        for port in sorted(ports):
+            print(f"    • {port}/tcp")
+    else:
+        print("\n ℹ️  No known open ports in Shodan database.")
+
+    # Hostnames
+    hostnames = data.get('hostnames', [])
+    if hostnames:
+        print("\n 🌐 Hostnames:")
+        for hn in hostnames:
+            print(f"    • {hn}")
+
+    # Vulnerabilities
+    vulns = data.get('vulns', {})
+    if vulns:
+        print(f"\n ⚠️  Known Vulnerabilities ({len(vulns)}):")
+        for cve, info in vulns.items():
+            print(f"    • {cve}")
+            if isinstance(info, dict) and 'summary' in info:
+                print(f"      {info['summary'][:120]}...")
+    else:
+        print("\n ✅ No known vulnerabilities in Shodan database.")
+
+    # Other metadata
+    if 'cpes' in data and data['cpes']:
+        print("\n 📦 Detected Software (CPE):")
+        for cpe in data['cpes'][:5]:   # limit to 5
+            print(f"    • {cpe}")
+    if 'tags' in data and data['tags']:
+        print("\n 🏷️  Tags:")
+        print("    " + ", ".join(data['tags']))
+
+    print("\n" + "=" * 60)
+    print(" No active scanning will be performed – using Shodan data only.")
+    print("=" * 60 + "\n")
 
 def is_cidr_range(ip):
     """Check if the target is a CIDR range (like /24)"""
@@ -392,10 +454,24 @@ def run_scan_chain(ip, folder_name):
     base = f"{ip_folder}/port"
     zombie_mode = os.environ.get('ZOMBIE') == 'enabled'
     service_scan_enabled = os.environ.get('SERVICE_SCAN', 'true').lower() == 'true'
+    shodan_skip_scan = os.environ.get('SHODAN_SKIP_SCAN', 'true').lower() == 'true'
+
+    # --- Shodan lookup first ---
+    shodan_data = shodan_scan()
+    if shodan_data and shodan_skip_scan:
+        pretty_print_shodan_data(shodan_data)
+        # Save the Shodan output for later reference
+        with open(ip_folder / "shodan_info.json", "w") as f:
+            json.dump(shodan_data, f, indent=2)
+        print(f" [*] Shodan data saved to {ip_folder / 'shodan_info.json'}")
+        return True   # skip all scanning
+
+    # If Shodan had data but skip_scan is false, we still proceed with scanning,
+    # but we can still use the ports list if present.
+    open_ports = shodan_data.get('ports', []) if shodan_data else []
     
-    open_ports = shodan_scan()
     if not open_ports:
-        print(" [!] No open ports found via Shodan. you can choose to scan a custom range or exit. scan/exit")
+        print(" [!] No open ports found via Shodan. You can choose to scan a custom range or exit. scan/exit")
         ans = input("Option: ").strip().lower()
         if ans == "exit":
             print(" [*] Exiting.")

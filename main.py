@@ -10,7 +10,7 @@ import sys
 import subprocess
 import config_loader
 
-os.environ['VERSION'] = "2.9.0"
+os.environ['VERSION'] = "2.10.0"
 
 def banner():
     """Display the PINGuin banner"""
@@ -196,6 +196,7 @@ def main():
             print("   update check - Check if an update exists without pulling")
             print("   zombie status- Show zombie configuration")
             print("   zombie check - Test zombie connectivity")
+            print("   shodan-skip-scan - Show/set whether to skip scanning if Shodan has data")
             print("\n Configuration attributes (use 'set <attr> <value>'):")
             print("   ip           - Target IP address")
             print("   tports       - Target ports (common|all|80,443,22)")
@@ -208,6 +209,7 @@ def main():
             print("   nmap-path    - Custom path to nmap binary")
             print("   debug        - Enable/disable debug mode (true/false)")
             print("   auto-update  - Enable/disable automatic update check (true/false)")
+            print("   shodan-skip-scan - Skip scanning when Shodan has data (true/false)")
             print("\n Usage: set <attribute> <value>")
 
         elif cmd.startswith("scan"):
@@ -386,6 +388,20 @@ def main():
                     else:
                         print(" [!] Invalid choice.")
 
+                elif attr == "shodan-skip-scan":
+                    if len(parts) >= 3:
+                        choice = parts[2].lower()
+                    else:
+                        choice = input(" [?] Skip scanning when Shodan has data? (true/false, default true): ").lower()
+                    if choice in ["true", "t"]:
+                        os.environ['SHODAN_SKIP_SCAN'] = 'true'
+                        print(" [+] Shodan skip-scan mode enabled (will not scan if Shodan has info)")
+                    elif choice in ["false", "f"]:
+                        os.environ['SHODAN_SKIP_SCAN'] = 'false'
+                        print(" [+] Shodan skip-scan mode disabled (will scan even if Shodan has info)")
+                    else:
+                        print(" [!] Invalid choice.")
+
         elif cmd.startswith("update"):
             parts = cmd.split()
             if len(parts) == 1:
@@ -465,6 +481,7 @@ def main():
             print(f"     Nmap Path: {os.environ.get('NMAP_PATH', 'nmap (default)')}")
             print(f"     Debug Mode: {'enabled' if os.environ.get('DEBUG', 'false') == 'true' else 'disabled'}")
             print(f"     Auto Update Check: {'enabled' if os.environ.get('AUTO_UPDATE_CHECK', 'true') == 'true' else 'disabled'}")
+            print(f"     Shodan Skip Scan: {'enabled' if os.environ.get('SHODAN_SKIP_SCAN', 'true') == 'true' else 'disabled'}")
             if os.environ.get('ZOMBIE') == 'enabled':
                 print("     Zombie Mode: enabled")
                 print(f"        Username: {os.environ.get('USERNAME', 'Not set')}")
@@ -475,6 +492,10 @@ def main():
 
         elif cmd == "auto-update":
             print(f" [*] Auto-update check is {'enabled' if os.environ.get('AUTO_UPDATE_CHECK', 'true') == 'true' else 'disabled'}")
+
+        elif cmd == "shodan-skip-scan":
+            val = os.environ.get('SHODAN_SKIP_SCAN', 'true')
+            print(f" [*] Shodan skip-scan is {'enabled' if val == 'true' else 'disabled'}")
 
         elif cmd == "clear":
             os.system('cls' if sys.platform == 'win32' else 'clear')
