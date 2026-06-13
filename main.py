@@ -10,7 +10,7 @@ import sys
 import subprocess
 import config_loader
 
-os.environ['VERSION'] = "2.10.0"
+os.environ['VERSION'] = "3.1.1"
 
 def banner():
     """Display the PINGuin banner"""
@@ -165,6 +165,8 @@ def main():
             print("   clear - Clear the terminal screen")
             print("   exit - Exit the tool")
             print("   ip - Show current target IP")
+            print("   my-ip - Show your public IP address")
+            print("   tports - Show current target ports configuration")
             print("   stype - Show current scan type")
             print("   fname - Show results folder")
             print("   service-scan - Show service scan status")
@@ -178,6 +180,7 @@ def main():
             print("   passive-scan - Show/set whether to perform passive scanning")
             print("\n Configuration attributes (use 'set <attr> <value>'):")
             print("   ip - Target IP address")
+            print("   my-ip - Your public IP address (for reverse shells)")
             print("   tports - Target ports (common|all|80,443,22)")
             print("   stype - Scan type (stealthy/aggressive)")
             print("   fname - Folder name for results")
@@ -234,11 +237,14 @@ def main():
                 os.environ['EXPLOIT_PORT'] = port
                 cve_id = parts[3]
 
-                if len(parts) > 4:
-                    command = " ".join(parts[4:])
-                    os.environ['EXPLOIT_COMMAND'] = command
+            if len(parts) >= 4:
+                command = " ".join(parts[4:])
+                os.environ['EXPLOIT_COMMAND'] = command
+            else:
+                # Unset or leave as default if no command provided
+                os.environ.pop('EXPLOIT_COMMAND', None)
 
-                subprocess.run([sys.executable, f"exploits/{service}/{cve_id}.py"])
+            subprocess.run([sys.executable, f"exploits/{service}/{cve_id}.py"])
 
         elif cmd.startswith("set"):
             parts = cmd.split()
@@ -252,6 +258,13 @@ def main():
                     else:
                         os.environ['IP'] = input(" [?] Enter IP: ")
                     print(f" [+] IP set to {os.environ['IP']}")
+
+                elif attr == "my-ip":
+                    if len(parts) >= 3:
+                        os.environ['MY_IP'] = parts[2]
+                    else:
+                        os.environ['MY_IP'] = input(" [?] Enter your public IP (for reverse shells): ")
+                    print(f" [+] Your IP set to {os.environ['MY_IP']}")
 
                 elif attr == "tports":
                     if len(parts) >= 3:
