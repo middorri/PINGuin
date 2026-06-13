@@ -3,6 +3,9 @@ import os
 def get_ip():
     return os.environ.get('IP')
 
+def get_exploit_port():
+    return os.environ.get('EXPLOIT_PORT')
+
 def get_scan_type():
     return os.environ.get('SCAN_TYPE')
 

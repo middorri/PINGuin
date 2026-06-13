@@ -156,36 +156,37 @@ def main():
 
         if cmd == "help":
             print(" Available commands:")
-            print("   help         - Show this help message")
-            print("   scan <ip>    - Run network scan module")
-            print("   enum <ip>    - Run enumeration module")
-            print("   full <ip>    - Run full reconnaissance module")
-            print("   status       - Show current configuration status")
-            print("   clear        - Clear the terminal screen")
-            print("   exit         - Exit the tool")
-            print("   ip           - Show current target IP")
-            print("   stype        - Show current scan type")
-            print("   fname        - Show results folder")
+            print("   help - Show this help message")
+            print("   scan <ip> - Run network scan module")
+            print("   enum <ip> - Run enumeration module")
+            print("   full <ip> - Run full reconnaissance module")
+            print("   exploit <service> <port> - Run exploit module for a specific service and port")
+            print("   status - Show current configuration status")
+            print("   clear - Clear the terminal screen")
+            print("   exit - Exit the tool")
+            print("   ip - Show current target IP")
+            print("   stype - Show current scan type")
+            print("   fname - Show results folder")
             print("   service-scan - Show service scan status")
-            print("   host-check   - Show host up check status")
-            print("   nmap-path    - Show nmap path")
-            print("   debug        - Show debug mode status")
-            print("   version      - Show tool version")
-            print("   auto-update  - Show auto-update check status")
-            print("   update       - Pull latest code from git")
+            print("   host-check - Show host up check status")
+            print("   nmap-path - Show nmap path")
+            print("   debug - Show debug mode status")
+            print("   version - Show tool version")
+            print("   auto-update - Show auto-update check status")
+            print("   update - Pull latest code from git")
             print("   update check - Check if an update exists without pulling")
             print("   passive-scan - Show/set whether to perform passive scanning")
             print("\n Configuration attributes (use 'set <attr> <value>'):")
-            print("   ip           - Target IP address")
-            print("   tports       - Target ports (common|all|80,443,22)")
-            print("   stype        - Scan type (stealthy/aggressive)")
-            print("   fname        - Folder name for results")
-            print("   config       - Path to configuration file")
+            print("   ip - Target IP address")
+            print("   tports - Target ports (common|all|80,443,22)")
+            print("   stype - Scan type (stealthy/aggressive)")
+            print("   fname - Folder name for results")
+            print("   config - Path to configuration file")
             print("   service-scan - Enable/disable service version scanning (true/false)")
-            print("   host-check   - Enable/disable host up check (true/false)")
-            print("   nmap-path    - Custom path to nmap binary")
-            print("   debug        - Enable/disable debug mode (true/false)")
-            print("   auto-update  - Enable/disable automatic update check (true/false)")
+            print("   host-check - Enable/disable host up check (true/false)")
+            print("   nmap-path - Custom path to nmap binary")
+            print("   debug - Enable/disable debug mode (true/false)")
+            print("   auto-update - Enable/disable automatic update check (true/false)")
             print("   passive-scan - Enable/disable passive scanning (true/false)")
             print("\n Usage: set <attribute> <value>")
 
@@ -222,6 +223,18 @@ def main():
                 subprocess.run(["sudo", "-n", "true"], check=False)
             subprocess.run([sys.executable, f"{module}/network_scan.py"])
             subprocess.run([sys.executable, f"{module}/enumeration.py"])
+
+        elif cmd.startswith("exploit"):
+            parts = cmd.split()
+            if len(parts) < 4:
+                print(" [!] Usage: exploit <service> <port> <CVE ID>")
+            else:
+                service = parts[1]
+                port = parts[2]
+                os.environ['EXPLOIT_PORT'] = port
+                cve_id = parts[3]
+
+                subprocess.run([sys.executable, f"exploits/{service}/{cve_id}.py"])
 
         elif cmd.startswith("set"):
             parts = cmd.split()
