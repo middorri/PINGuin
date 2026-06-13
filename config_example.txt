@@ -3,7 +3,3 @@ FNAME = pinguin_results
 STYPE = aggressive
 SERVICE_SCAN = false
 HOST_CHECK = true
-
-#ZOMBIE_USER <USERNAME>
-#ZOMBIE_PASS <PASSWORD>
-#ZOMBIE_IP <IP>

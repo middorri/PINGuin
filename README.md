@@ -46,7 +46,7 @@ Inside the PINGuin prompt (`$`), you can use the following commands:
 | `scan <ip>` | Run network scan on target IP |
 | `enum <ip>` | Run service enumeration on target IP |
 | `full <ip>` | Run both scan and enumeration (full recon) |
-| `status` | Show current configuration (including zombie settings) |
+| `status` | Show current configuration |
 | `clear` | Clear the terminal screen and redisplay banner |
 | `exit` | Quit the tool |
 | `ip` | Show current target IP |
@@ -60,8 +60,6 @@ Inside the PINGuin prompt (`$`), you can use the following commands:
 | `auto-update` | Show auto‑update check status |
 | `update` | Pull the latest code from git (auto‑stashes local changes) |
 | `update check` | Check if an update exists without pulling |
-| `zombie status` | Show zombie configuration (username, IP, password hidden) |
-| `zombie check` | Test zombie connectivity and readiness |
 
 ## Configuration Attributes (set command)
 
@@ -73,7 +71,6 @@ Use `set <attribute> <value>` to modify settings:
 | `stype` | Scan type: `stealthy` or `aggressive` | `set stype aggressive` |
 | `fname` | Folder name for scan results | `set fname scan_results` |
 | `config` | Path to a configuration file | `set config my_config.ini` |
-| `zombie` | Set zombie credentials (user, password, ip) or load config file | `set zombie bob pass123 10.0.0.5` or `set zombie config /path/to/zombie.conf` |
 | `service-scan` | Enable/disable service version scanning (`true`/`false`) | `set service-scan true` |
 | `host-check` | Enable/disable host up check (`true`/`false`, default true) | `set host-check false` |
 | `nmap-path` | Custom path to nmap binary | `set nmap-path /usr/local/bin/nmap` |
@@ -101,14 +98,12 @@ $ scan
 Create a config file with settings:
 
 ## config.txt
-IP 192.168.1.100
-STYPE stealthy
-FNAME scan_results
-SERVICE_SCAN = false
+IP 192.168.1.100 \
+STYPE stealthy \
+FNAME scan_results \
+SERVICE_SCAN = false \
 HOST_CHECK = true
-ZOMBIE_USER <USERNAME>
-ZOMBIE_PASS <PASSWORD>
-ZOMBIE_IP <IP>
+
 
 Load it with: `set config config.txt`
 

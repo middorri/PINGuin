@@ -285,60 +285,18 @@ def is_host_up(ip):
     with tempfile.NamedTemporaryFile(delete=False, suffix=".xml") as tmp:
         xml_output = tmp.name
     nmap_path = resolve_nmap()
-    if os.environ.get('ZOMBIE') == 'enabled':
-        ZOMBIE_USER = os.environ.get('USERNAME')
-        ZOMBIE_PASS = os.environ.get('PASSWORD')
-        ZOMBIE_IP = os.environ.get('ZOMBIE_IP')
-        nmap_cmd = [
-            "sshpass", "-p", ZOMBIE_PASS,
-            "ssh",
-            "-o", "StrictHostKeyChecking=no",
-            "-tt",
-            f"{ZOMBIE_USER}@{ZOMBIE_IP}", "cd /tmp &&",
-            f"echo '{ZOMBIE_PASS}' | sudo -S {nmap_path} -sn "
-            "-PE --data-length 56 "
-            "--max-retries 1 "
-            "--host-timeout 5s "
-            f"-oX /tmp/host_up_check.xml "
-            f"{ip}"
-        ]
-        debug_print(f" [*] Checking if {ip} is up via zombie host...")
-        result = run_cmd(nmap_cmd)
-
-        if result.returncode != 0:
-            print(f" [!] Nmap command failed: {result.stderr}")
-            if os.path.exists(xml_output):
-                os.remove(xml_output)
-            return False
-
-        scp_cmd = [
-            "sshpass", "-p", ZOMBIE_PASS,
-            "scp",
-            "-o", "StrictHostKeyChecking=no",
-            f"{ZOMBIE_USER}@{ZOMBIE_IP}:/tmp/host_up_check.xml",
-            xml_output
-        ]
-        result = run_cmd(scp_cmd)
-
-        if result.returncode != 0:
-            print(f" [!] Failed to copy XML from zombie: {result.stderr}")
-            if os.path.exists(xml_output):
-                os.remove(xml_output)
-            return False
-
-    else:
-        nmap_cmd = [
-            f"{nmap_path}",
-            "-sn",
-            "-PE",
-            "--data-length", "56",      # standard ICMP payload
-            "--max-retries", "1",
-            "--host-timeout", "5s",
-            "-oX", xml_output,
-            ip
-        ]
-        debug_print(f" [*] Checking if {ip} is up...")
-        run_cmd(nmap_cmd)
+    nmap_cmd = [
+        f"{nmap_path}",
+        "-sn",
+        "-PE",
+        "--data-length", "56",      # standard ICMP payload
+        "--max-retries", "1",
+        "--host-timeout", "5s",
+        "-oX", xml_output,
+        ip
+    ]
+    debug_print(f" [*] Checking if {ip} is up...")
+    run_cmd(nmap_cmd)
 
     try:
         tree = ET.parse(xml_output)
@@ -458,7 +416,6 @@ def run_scan_chain(ip, folder_name):
     ip_folder.mkdir(parents=True, exist_ok=True)
 
     base = f"{ip_folder}/port"
-    zombie_mode = os.environ.get('ZOMBIE') == 'enabled'
     service_scan_enabled = os.environ.get('SERVICE_SCAN', 'true').lower() == 'true'
     passive_scan = os.environ.get('PASSIVE_SCAN', 'true').lower() == 'true'
 
@@ -548,37 +505,12 @@ def run_scan_chain(ip, folder_name):
         delay = random.randint(3, 10)
         rate = random.randint(1, 15)
 
-        if zombie_mode:
-            ZOMBIE_USER = os.environ.get('USERNAME')
-            ZOMBIE_PASS = os.environ.get('PASSWORD')
-            ZOMBIE_IP = os.environ.get('ZOMBIE_IP')
-            remote_udp_xml = "/tmp/scan_udp_key_ports.xml"
-            local_udp_xml = f"{base}_udp_key_ports.xml"
-            
-            cmd = [
-                "sshpass", "-p", ZOMBIE_PASS,
-                "ssh", "-o", "StrictHostKeyChecking=no", "-tt",
-                f"{ZOMBIE_USER}@{ZOMBIE_IP}", "cd /tmp &&",
-                f"echo '{ZOMBIE_PASS}' | sudo -S {nmap_path} -sU -T1 "
-                f"--max-rate {rate} --scan-delay {delay}s "
-                f"-p {udp_ports} -oX {remote_udp_xml} {ip}"
-            ]
-            run_cmd(cmd)
-            run_cmd([
-                "sshpass", "-p", ZOMBIE_PASS, "scp", "-o", "StrictHostKeyChecking=no",
-                f"{ZOMBIE_USER}@{ZOMBIE_IP}:{remote_udp_xml}", local_udp_xml
-            ])
-            run_cmd([
-                "sshpass", "-p", ZOMBIE_PASS, "ssh", "-o", "StrictHostKeyChecking=no",
-                f"{ZOMBIE_USER}@{ZOMBIE_IP}", f"rm {remote_udp_xml}"
-            ])
-        else:
-            cmd = [
-                *sudo_prefix(), f"{nmap_path}", *nmap_unprivileged(), "-sU", "-T1", "--max-rate", str(rate), "--scan-delay", f"{delay}s",
-                *random_source_port(), *windows_fingerprint_flags(),
-                "-p", udp_ports, "-oA", f"{base}_udp_key_ports", ip
-            ]
-            run_cmd(cmd)
+        cmd = [
+            *sudo_prefix(), f"{nmap_path}", *nmap_unprivileged(), "-sU", "-T1", "--max-rate", str(rate), "--scan-delay", f"{delay}s",
+            *random_source_port(), *windows_fingerprint_flags(),
+            "-p", udp_ports, "-oA", f"{base}_udp_key_ports", ip
+        ]
+        run_cmd(cmd)
     else:
         print(" [*] No UDP ports to scan (all TCP ports responded). Skipping UDP discovery.")
     
@@ -592,40 +524,13 @@ def run_scan_chain(ip, folder_name):
         delay = random.randint(3, 10)
         rate = random.randint(1, 15)
         
-        if zombie_mode:
-            ZOMBIE_USER = os.environ.get('USERNAME')
-            ZOMBIE_PASS = os.environ.get('PASSWORD')
-            ZOMBIE_IP = os.environ.get('ZOMBIE_IP')
-            remote_svc_xml = "/tmp/scan_tcp_service_versions.xml"
-            local_svc_xml = f"{base}_tcp_service_versions.xml"
-            nmap_path = resolve_nmap()
-
-            cmd = [
-                "sshpass", "-p", ZOMBIE_PASS,
-                "ssh", "-o", "StrictHostKeyChecking=no", "-tt",
-                f"{ZOMBIE_USER}@{ZOMBIE_IP}", "cd /tmp &&",
-                f"echo '{ZOMBIE_PASS}' | sudo -S {nmap_path} -sT -T1 "
-                f"--max-rate {rate} --scan-delay {delay}s "
-                "-sV --version-intensity 5 "
-                f"-p {ports_str} -oX {remote_svc_xml} {ip}"
-            ]
-            run_cmd(cmd)
-            run_cmd([
-                "sshpass", "-p", ZOMBIE_PASS, "scp", "-o", "StrictHostKeyChecking=no",
-                f"{ZOMBIE_USER}@{ZOMBIE_IP}:{remote_svc_xml}", local_svc_xml
-            ])
-            run_cmd([
-                "sshpass", "-p", ZOMBIE_PASS, "ssh", "-o", "StrictHostKeyChecking=no",
-                f"{ZOMBIE_USER}@{ZOMBIE_IP}", f"rm {remote_svc_xml}"
-            ])
-        else:
-            cmd = [
-                f"{nmap_path}", *nmap_unprivileged(), "-sT", "-T1", "--max-rate", str(rate), "--scan-delay", f"{delay}s",
-                "-sV", "--version-intensity", "5",
-                *random_source_port(), *windows_fingerprint_flags(),
-                "-p", ports_str, "-oA", f"{base}_tcp_service_versions", ip
-            ]
-            run_cmd(cmd)
+        cmd = [
+            f"{nmap_path}", *nmap_unprivileged(), "-sT", "-T1", "--max-rate", str(rate), "--scan-delay", f"{delay}s",
+            "-sV", "--version-intensity", "5",
+            *random_source_port(), *windows_fingerprint_flags(),
+            "-p", ports_str, "-oA", f"{base}_tcp_service_versions", ip
+        ]
+        run_cmd(cmd)
     elif not service_scan_enabled:
         print(" [*] Service scan disabled. Skipping TCP service detection.")
     else:
@@ -644,39 +549,13 @@ def run_scan_chain(ip, folder_name):
         delay = random.randint(3, 10)
         rate = random.randint(1, 15)
         
-        if zombie_mode:
-            ZOMBIE_USER = os.environ.get('USERNAME')
-            ZOMBIE_PASS = os.environ.get('PASSWORD')
-            ZOMBIE_IP = os.environ.get('ZOMBIE_IP')
-            remote_udpsvc_xml = "/tmp/scan_udp_service_versions.xml"
-            local_udpsvc_xml = f"{base}_udp_service_versions.xml"
-            nmap_path = resolve_nmap()
-            cmd = [
-                "sshpass", "-p", ZOMBIE_PASS,
-                "ssh", "-o", "StrictHostKeyChecking=no", "-tt",
-                f"{ZOMBIE_USER}@{ZOMBIE_IP}", "cd /tmp &&",
-                f"echo '{ZOMBIE_PASS}' | sudo -S {nmap_path} -sU -T0 "
-                f"--max-rate {rate} --scan-delay {delay}s "
-                "-sV --version-intensity 1 -sC "
-                f"-p {ports_str} -oX {remote_udpsvc_xml} {ip}"
-            ]
-            run_cmd(cmd)
-            run_cmd([
-                "sshpass", "-p", ZOMBIE_PASS, "scp", "-o", "StrictHostKeyChecking=no",
-                f"{ZOMBIE_USER}@{ZOMBIE_IP}:{remote_udpsvc_xml}", local_udpsvc_xml
-            ])
-            run_cmd([
-                "sshpass", "-p", ZOMBIE_PASS, "ssh", "-o", "StrictHostKeyChecking=no",
-                f"{ZOMBIE_USER}@{ZOMBIE_IP}", f"rm {remote_udpsvc_xml}"
-            ])
-        else:
-            cmd = [
-                *sudo_prefix(), f"{nmap_path}", *nmap_unprivileged(), "-sU", "-T0", "--max-rate", str(rate), "--scan-delay", f"{delay}s",
-                "-sV", "--version-intensity", "1", "-sC",
-                *random_source_port(), *windows_fingerprint_flags(),
-                "-p", ports_str, "-oA", f"{base}_udp_service_versions", ip
-            ]
-            run_cmd(cmd)
+        cmd = [
+            *sudo_prefix(), f"{nmap_path}", *nmap_unprivileged(), "-sU", "-T0", "--max-rate", str(rate), "--scan-delay", f"{delay}s",
+            "-sV", "--version-intensity", "1", "-sC",
+            *random_source_port(), *windows_fingerprint_flags(),
+            "-p", ports_str, "-oA", f"{base}_udp_service_versions", ip
+        ]
+        run_cmd(cmd)
     elif not service_scan_enabled:
         print(" [*] Service scan disabled. Skipping UDP service detection.")
     else:

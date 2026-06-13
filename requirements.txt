@@ -5,7 +5,6 @@ requests>=2.25.1
 # and must be installed separately via system package manager:
 #
 #   nmap          - Network scanning
-#   sshpass       - SSH password automation (for zombie mode)
 #   ssh-audit     - SSH security auditing (enumeration)
 #   whatweb       - Web technology identification
 #   testssl.sh    - SSL/TLS testing

@@ -76,51 +76,12 @@ def load_config(config_path):
     print(f" [*] Loaded {loaded} configuration entries.")
     return True
 
-def load_zombie_config(config_path):
-    """Load zombie-specific config (username, password, zombie_ip)."""
-    if not os.path.exists(config_path):
-        print(f" [!] Zombie config file not found: {config_path}")
-        return False
-
-    print(f" [*] Loading zombie configuration from: {config_path}")
-    loaded = 0
-    with open(config_path, 'r') as f:
-        for line_num, line in enumerate(f, 1):
-            line = line.strip()
-            if not line or line.startswith('#'):
-                continue
-            if '=' not in line:
-                print(f" [!] Line {line_num}: Ignoring malformed line (missing '='): {line}")
-                continue
-
-            key, value = line.split('=', 1)
-            key = key.strip().upper()
-            value = value.strip()
-
-            if key in ('USERNAME', 'PASSWORD', 'ZOMBIE_IP'):
-                os.environ[key] = value
-                print(f" [+] {key} = {value}")
-                loaded += 1
-            else:
-                print(f" [!] Line {line_num}: Unknown key '{key}' for zombie config, ignoring.")
-
-    if loaded > 0:
-        os.environ['ZOMBIE'] = 'enabled'
-        print(" [+] ZOMBIE = enabled")
-    else:
-        print(" [!] No valid zombie configuration entries found.")
-        return False
-
-    print(f" [*] Loaded {loaded} zombie configuration entries.")
-    return True
-
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         load_config(sys.argv[1])
         print("\nCurrent environment variables:")
         for k, v in sorted(os.environ.items()):
-            if k in ('IP', 'SCAN_TYPE', 'FNAME', 'ZOMBIE', 'USERNAME', 'PASSWORD',
-                     'ZOMBIE_IP', 'SERVICE_SCAN', 'HOST_CHECK', 'DEBUG', 'AUTO_UPDATE_CHECK',
+            if k in ('IP', 'SCAN_TYPE', 'FNAME', 'SERVICE_SCAN', 'HOST_CHECK', 'DEBUG', 'AUTO_UPDATE_CHECK',
                      'NMAP_PATH', 'PASSIVE_SCAN'):
                 print(f"  {k} = {v}")
     else:

@@ -21,18 +21,5 @@ def get_nmap_path():
 def get_is_debug_enabled():
     return os.environ.get('DEBUG', 'false').lower() == 'true'
 
-# Zombie related
-def get_is_zombie():
-    return os.environ.get('ZOMBIE') == 'enabled'
-
-def get_zombie_username():
-    return os.environ.get('USERNAME')
-
-def get_zombie_password():
-    return os.environ.get('PASSWORD')
-
-def get_zombie_ip():
-    return os.environ.get('ZOMBIE_IP')
-
 def is_auto_update_enabled():
     return os.environ.get('AUTO_UPDATE_CHECK', 'true').lower() == 'true'
