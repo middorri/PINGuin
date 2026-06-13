@@ -160,7 +160,7 @@ def main():
             print("   scan <ip> - Run network scan module")
             print("   enum <ip> - Run enumeration module")
             print("   full <ip> - Run full reconnaissance module")
-            print("   exploit <service> <port> - Run exploit module for a specific service and port")
+            print("   exploit <service> <port> <CVE-ID> <command> - Run exploit module for a specific service and port")
             print("   status - Show current configuration status")
             print("   clear - Clear the terminal screen")
             print("   exit - Exit the tool")
@@ -227,12 +227,16 @@ def main():
         elif cmd.startswith("exploit"):
             parts = cmd.split()
             if len(parts) < 4:
-                print(" [!] Usage: exploit <service> <port> <CVE ID>")
+                print(" [!] Usage: exploit <service> <port> <CVE ID> [command]")
             else:
                 service = parts[1]
                 port = parts[2]
                 os.environ['EXPLOIT_PORT'] = port
                 cve_id = parts[3]
+
+                if len(parts) > 4:
+                    command = " ".join(parts[4:])
+                    os.environ['EXPLOIT_COMMAND'] = command
 
                 subprocess.run([sys.executable, f"exploits/{service}/{cve_id}.py"])
 
